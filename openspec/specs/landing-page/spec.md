@@ -197,7 +197,7 @@ The system SHALL provide institutional conversion channels, including corporate 
 - **THEN** the system routes the request with project details (Consultoria, Arquitetura, Squad Acceleration, Modernização) for priority corporate response.
 
 ### Requirement: Verified Corporate Contact Channels and Routing
-The system SHALL route all interactive contact elements, buttons, and form triggers to the verified official business endpoints: WhatsApp `5581973123278`, LinkedIn profile `https://www.linkedin.com/in/luizfelipemarinhodantas/`, and corporate email `luizltisistemas@gmail.com`, and SHALL transmit proposals directly via server-side API (`POST /api/contact`) in the background to ensure immediate delivery without requiring the visitor to open their local email client or webmail.
+The system SHALL route all interactive contact elements, buttons, and topic triggers directly to the verified official business endpoints: WhatsApp `5581973123278`, LinkedIn profile `https://www.linkedin.com/in/luizfelipemarinhodantas/`, and corporate email `luizltisistemas@gmail.com`, replacing static forms with an interactive Direct WhatsApp Fast-Connect Hub offering 1-click tailored message triggers for each engineering service.
 
 #### Scenario: User triggers WhatsApp conversation
 - **WHEN** the visitor clicks any WhatsApp CTA (Navbar, Hero, Contact Section, or Footer)
@@ -208,8 +208,8 @@ The system SHALL route all interactive contact elements, buttons, and form trigg
 - **THEN** the system navigates securely in a new tab to `https://www.linkedin.com/in/luizfelipemarinhodantas/` with `target="_blank"` and `rel="noopener noreferrer"`.
 
 #### Scenario: User sends email or submits corporate inquiry form
-- **WHEN** the visitor submits the corporate inquiry form
-- **THEN** the system posts the proposal payload to `/api/contact`, delivers the email to `luizltisistemas@gmail.com` in the background, displays an on-page success confirmation state with zero redirects, and provides an optional instant WhatsApp follow-up button.
+- **WHEN** the visitor interacts with the direct contact channels or selects a specific engineering service topic
+- **THEN** the system immediately opens WhatsApp with target phone `5581973123278` and tailored subject context (Arquitetura Cloud, Tech Lead / Squads, Modernização de Legados, Engenharia Sob Medida, Atendimento Geral).
 
 ### Requirement: GitHub Profile Presentation Documentation
 The repository README.md SHALL serve as an executive GitHub Profile Presentation Card for LTI Sistemas and founder Luiz Felipe Marinho Dantas, detailing company overview, mission-critical engineering credentials (+900% throughput), technology badges, 4 live SaaS applications with verified URLs, and direct business contact buttons.
