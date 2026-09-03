@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { siteConfig } from "@/lib/data";
+import { trackEvent } from "@/lib/analytics";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -40,7 +41,7 @@ export function Contact() {
     formData.projectType
   }\n\n📝 Detalhes do Projeto / Escopo:\n${
     formData.message
-  }\n\n---\nSolicitação gerada através do portal oficial LTI Sistemas (ltisistemas.com.br).`;
+  }\n\n---\nSolicitação gerada através do portal oficial LTI Sistemas (ltisistemas.vercel.app).`;
 
   const formattedWhatsAppBody = `*Solicitação de Proposta Corporativa - LTI Sistemas*\n\n*Nome:* ${
     formData.name
@@ -62,12 +63,17 @@ export function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
+    trackEvent("proposal_submit", {
+      projectType: formData.projectType,
+      hasCompany: !!formData.company,
+    });
     setIsSubmitted(true);
   };
 
   const handleCopyProposal = () => {
     const textToCopy = `Assunto: ${formattedSubject}\n\n${formattedEmailBody}`;
     navigator.clipboard.writeText(textToCopy);
+    trackEvent("contact_copy");
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 3000);
   };
@@ -230,6 +236,11 @@ export function Contact() {
                       href={gmailComposeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() =>
+                        trackEvent("gmail_dispatch", {
+                          projectType: formData.projectType,
+                        })
+                      }
                       className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/40 hover:border-red-400 text-white transition-all group shadow-lg shadow-red-950/20"
                     >
                       <div className="flex items-center gap-3">
@@ -252,6 +263,11 @@ export function Contact() {
                       href={whatsAppProposalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() =>
+                        trackEvent("whatsapp_click", {
+                          location: "contact_proposal_dispatch",
+                        })
+                      }
                       className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-white transition-all group shadow-lg shadow-emerald-950/20"
                     >
                       <div className="flex items-center gap-3">
