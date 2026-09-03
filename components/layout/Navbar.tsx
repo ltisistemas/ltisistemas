@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { siteConfig } from "@/lib/data";
+import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppIcon } from "@/components/ui/Icons";
@@ -80,6 +81,9 @@ export function Navbar() {
               isExternal
               variant="primary"
               size="sm"
+              onClick={() =>
+                trackEvent("whatsapp_click", { location: "navbar_desktop" })
+              }
               icon={<WhatsAppIcon className="h-3.5 w-3.5" />}
               iconRight={<ArrowUpRight className="h-3.5 w-3.5" />}
             >
@@ -129,7 +133,10 @@ export function Navbar() {
                 size="md"
                 fullWidth
                 icon={<WhatsAppIcon className="h-4 w-4" />}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  trackEvent("whatsapp_click", { location: "navbar_mobile" });
+                  setIsMobileMenuOpen(false);
+                }}
               >
                 Solicitar Proposta no WhatsApp
               </Button>

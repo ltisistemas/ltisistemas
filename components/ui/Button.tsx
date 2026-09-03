@@ -23,6 +23,7 @@ export function Button({
   icon,
   iconRight,
   className = "",
+  onClick,
   ...props
 }: ButtonProps) {
   const sizeStyles = {
@@ -55,6 +56,7 @@ export function Button({
       return (
         <a
           href={href}
+          onClick={onClick as unknown as React.MouseEventHandler<HTMLAnchorElement>}
           target={isExternal || href.startsWith("http") || href.startsWith("https://wa.me") ? "_blank" : undefined}
           rel={isExternal || href.startsWith("http") || href.startsWith("https://wa.me") ? "noopener noreferrer" : undefined}
           className={combinedClassName}
@@ -67,7 +69,11 @@ export function Button({
     }
 
     return (
-      <Link href={href} className={combinedClassName}>
+      <Link
+        href={href}
+        onClick={onClick as unknown as React.MouseEventHandler<HTMLAnchorElement>}
+        className={combinedClassName}
+      >
         {icon && <span className="shrink-0">{icon}</span>}
         <span>{children}</span>
         {iconRight && <span className="shrink-0">{iconRight}</span>}
@@ -76,7 +82,7 @@ export function Button({
   }
 
   return (
-    <button className={combinedClassName} {...props}>
+    <button className={combinedClassName} onClick={onClick} {...props}>
       {icon && <span className="shrink-0">{icon}</span>}
       <span>{children}</span>
       {iconRight && <span className="shrink-0">{iconRight}</span>}

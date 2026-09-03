@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { portfolioProjects } from "@/lib/data";
+import { trackEvent } from "@/lib/analytics";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -112,6 +115,12 @@ export function Portfolio() {
                   variant="primary"
                   size="md"
                   fullWidth
+                  onClick={() =>
+                    trackEvent("portfolio_launch", {
+                      projectTitle: project.title,
+                      url: project.url,
+                    })
+                  }
                   icon={<Globe className="h-4 w-4" />}
                   iconRight={<ArrowUpRight className="h-4 w-4" />}
                   className="shadow-md shadow-cyan-950/30"
