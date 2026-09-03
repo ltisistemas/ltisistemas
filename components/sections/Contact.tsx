@@ -13,10 +13,10 @@ import {
   Send,
   CheckCircle2,
   ArrowUpRight,
-  Copy,
-  Check,
-  RotateCcw,
+  Loader2,
   Sparkles,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
 export function Contact() {
@@ -26,62 +26,64 @@ export function Contact() {
     company: "",
     projectType: "Consultoria em Arquitetura & Cloud",
     message: "",
+    honeypot: "",
   });
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
 
-  // Formatted payloads
-  const formattedSubject = `[LTI Sistemas - Proposta Corporativa] ${formData.projectType} - ${
-    formData.company ? `${formData.company} (${formData.name})` : formData.name
-  }`;
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const formattedEmailBody = `Olá, equipe LTI Sistemas!\n\nGostaria de solicitar uma proposta corporativa / diagnóstico técnico com os seguintes detalhes:\n\n👤 Nome: ${formData.name}\n🏢 Empresa: ${
-    formData.company || "Não informada"
-  }\n📧 E-mail: ${formData.email}\n📌 Tipo de Necessidade: ${
-    formData.projectType
-  }\n\n📝 Detalhes do Projeto / Escopo:\n${
-    formData.message
-  }\n\n---\nSolicitação gerada através do portal oficial LTI Sistemas (ltisistemas.vercel.app).`;
-
-  const formattedWhatsAppBody = `*Solicitação de Proposta Corporativa - LTI Sistemas*\n\n*Nome:* ${
-    formData.name
-  }\n*Empresa:* ${formData.company || "Não informada"}\n*E-mail:* ${
-    formData.email
-  }\n*Necessidade:* ${formData.projectType}\n\n*Detalhes do Projeto:*\n${
-    formData.message
-  }`;
-
-  const encodedSubject = encodeURIComponent(formattedSubject);
-  const encodedEmailBody = encodeURIComponent(formattedEmailBody);
-  const encodedWhatsAppBody = encodeURIComponent(formattedWhatsAppBody);
-
-  // Direct dispatch endpoints
-  const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${siteConfig.contact.email}&su=${encodedSubject}&body=${encodedEmailBody}`;
-  const whatsAppProposalUrl = `https://wa.me/5581973123278?text=${encodedWhatsAppBody}`;
-  const mailtoUrl = `mailto:${siteConfig.contact.email}?subject=${encodedSubject}&body=${encodedEmailBody}`;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
-    trackEvent("proposal_submit", {
-      projectType: formData.projectType,
-      hasCompany: !!formData.company,
-    });
-    setIsSubmitted(true);
-  };
 
-  const handleCopyProposal = () => {
-    const textToCopy = `Assunto: ${formattedSubject}\n\n${formattedEmailBody}`;
-    navigator.clipboard.writeText(textToCopy);
-    trackEvent("contact_copy");
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 3000);
+    setStatus("submitting");
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setStatus("success");
+        trackEvent("proposal_submit", {
+          projectType: formData.projectType,
+          hasCompany: !!formData.company,
+        });
+      } else {
+        setStatus("error");
+        setErrorMessage(data.error || "Não foi possível enviar a proposta. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar formulário:", error);
+      setStatus("error");
+      setErrorMessage("Erro de conexão. Por favor, tente novamente ou use o WhatsApp.");
+    }
   };
 
   const handleReset = () => {
-    setIsSubmitted(false);
-    setIsCopied(false);
+    setFormData({
+      name: "",
+      email: "",
+      company: "",
+      projectType: "Consultoria em Arquitetura & Cloud",
+      message: "",
+      honeypot: "",
+    });
+    setStatus("idle");
+    setErrorMessage("");
   };
+
+  // WhatsApp urgency URL
+  const whatsAppUrgentUrl = `https://wa.me/5581973123278?text=${encodeURIComponent(
+    `Olá, Luiz Felipe! Acabei de enviar uma proposta pelo site para a LTI Sistemas a respeito de "${formData.projectType}". Seguem meus dados:\n\nNome: ${formData.name}\nEmpresa: ${formData.company || "Não informada"}\nE-mail: ${formData.email}`
+  )}`;
 
   return (
     <section id="contato" className="py-20 md:py-32 relative overflow-hidden">
@@ -94,7 +96,7 @@ export function Contact() {
           badgeVariant="cyan"
           title="Vamos Estruturar o Próximo"
           highlightText="Salto Tecnológico da sua Empresa?"
-          description="Fale diretamente com os especialistas da LTI Sistemas para diagnósticos de arquitetura, aceleração de squads, modernização de legados e engenharia sob medida."
+          description="Envie sua solicitação diretamente para a equipe técnica da LTI Sistemas para diagnósticos de arquitetura, aceleração de squads, modernização de legados e engenharia sob medida."
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
@@ -130,6 +132,7 @@ export function Contact() {
                 variant="emerald"
                 size="md"
                 fullWidth
+                onClick={() => trackEvent("whatsapp_click", { location: "contact_direct_card" })}
                 icon={<WhatsAppIcon className="h-4 w-4" />}
                 iconRight={<ArrowUpRight className="h-4 w-4" />}
               >
@@ -187,145 +190,65 @@ export function Contact() {
             </Card>
           </div>
 
-          {/* Inquiry Form / Multi-Channel Dispatch Column */}
+          {/* Direct 1-Click Form Column */}
           <div className="lg:col-span-7">
             <Card className="p-6 sm:p-8 border-slate-800 bg-slate-900/70 shadow-2xl relative overflow-hidden">
-              {isSubmitted ? (
-                /* Multi-Channel Proposal Dispatch View */
-                <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                      <CheckCircle2 className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        Proposta Estruturada com Sucesso!
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Selecione o canal de sua preferência para concluir o envio à equipe técnica:
-                      </p>
-                    </div>
+              {status === "success" ? (
+                /* Instant On-Page Success Confirmation Screen */
+                <div className="space-y-6 py-4 text-center animate-in fade-in zoom-in-95 duration-300">
+                  <div className="h-16 w-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto shadow-xl shadow-emerald-950/40">
+                    <CheckCircle2 className="h-9 w-9" />
                   </div>
 
-                  {/* Proposal Summary Box */}
-                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs space-y-1.5">
-                    <div className="flex justify-between text-slate-400">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Proposta Enviada com Sucesso!
+                    </h3>
+                    <p className="text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
+                      Sua solicitação foi entregue diretamente na caixa de entrada da LTI Sistemas. Nossa liderança técnica fará a triagem inicial e retornará no e-mail <strong className="text-cyan-400">{formData.email}</strong> em até 24h úteis.
+                    </p>
+                  </div>
+
+                  {/* Sent Data Summary */}
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-left max-w-md mx-auto space-y-2">
+                    <div className="flex justify-between text-slate-400 border-b border-slate-800/80 pb-1.5">
                       <span>Solicitante:</span>
                       <strong className="text-slate-200">{formData.name}</strong>
                     </div>
                     {formData.company && (
-                      <div className="flex justify-between text-slate-400">
+                      <div className="flex justify-between text-slate-400 border-b border-slate-800/80 pb-1.5">
                         <span>Empresa:</span>
                         <strong className="text-slate-200">{formData.company}</strong>
                       </div>
                     )}
-                    <div className="flex justify-between text-slate-400">
-                      <span>E-mail:</span>
-                      <strong className="text-cyan-400">{formData.email}</strong>
-                    </div>
                     <div className="flex justify-between text-slate-400">
                       <span>Necessidade:</span>
                       <strong className="text-slate-200">{formData.projectType}</strong>
                     </div>
                   </div>
 
-                  {/* Dispatch Channel Triggers */}
-                  <div className="flex flex-col gap-3">
-                    {/* Option 1: Gmail Webmail (1-Click) */}
-                    <a
-                      href={gmailComposeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() =>
-                        trackEvent("gmail_dispatch", {
-                          projectType: formData.projectType,
-                        })
-                      }
-                      className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/40 hover:border-red-400 text-white transition-all group shadow-lg shadow-red-950/20"
+                  {/* Urgent WhatsApp Option */}
+                  <div className="pt-2 flex flex-col gap-3 max-w-md mx-auto">
+                    <Button
+                      href={whatsAppUrgentUrl}
+                      isExternal
+                      variant="emerald"
+                      size="md"
+                      fullWidth
+                      onClick={() => trackEvent("whatsapp_click", { location: "contact_success_screen" })}
+                      icon={<WhatsAppIcon className="h-4 w-4" />}
+                      iconRight={<ArrowUpRight className="h-4 w-4" />}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-red-500/20 flex items-center justify-center text-red-400 shrink-0">
-                          <Mail className="h-5 w-5" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-bold flex items-center gap-1.5">
-                            <span>Enviar via Gmail Webmail</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/30 text-red-300 font-normal">Recomendado</span>
-                          </div>
-                          <span className="text-xs text-slate-300">Abre o Gmail no navegador com tudo preenchido</span>
-                        </div>
-                      </div>
-                      <ArrowUpRight className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
-                    </a>
-
-                    {/* Option 2: WhatsApp Corporativo (1-Click) */}
-                    <a
-                      href={whatsAppProposalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() =>
-                        trackEvent("whatsapp_click", {
-                          location: "contact_proposal_dispatch",
-                        })
-                      }
-                      className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-white transition-all group shadow-lg shadow-emerald-950/20"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                          <WhatsAppIcon className="h-5 w-5" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-bold">Encaminhar via WhatsApp Corporativo</div>
-                          <span className="text-xs text-slate-300">Contato direto com a liderança técnica</span>
-                        </div>
-                      </div>
-                      <ArrowUpRight className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
-                    </a>
-
-                    {/* Option 3: Default Mailto */}
-                    <a
-                      href={mailtoUrl}
-                      className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-900 flex items-center justify-center text-slate-400 shrink-0">
-                          <Send className="h-4 w-4" />
-                        </div>
-                        <div className="text-left">
-                          <div className="text-xs font-semibold">Abrir no Aplicativo de E-mail (Outlook / Apple Mail)</div>
-                        </div>
-                      </div>
-                      <ArrowUpRight className="h-4 w-4 text-slate-500 group-hover:text-slate-300" />
-                    </a>
-                  </div>
-
-                  {/* Utility actions */}
-                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
-                    <button
-                      type="button"
-                      onClick={handleCopyProposal}
-                      className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1.5 transition-colors"
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
-                          <span className="text-emerald-400 font-semibold">Proposta copiada!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copiar texto formatado</span>
-                        </>
-                      )}
-                    </button>
+                      Falar Também no WhatsApp (Opcional)
+                    </Button>
 
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                      className="text-xs text-slate-400 hover:text-white flex items-center justify-center gap-1.5 py-2 transition-colors"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
-                      <span>Editar dados ou enviar nova proposta</span>
+                      <span>Enviar outra proposta ou mensagem</span>
                     </button>
                   </div>
                 </div>
@@ -339,10 +262,31 @@ export function Contact() {
                     </h3>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-400 mb-6">
-                    Preencha as informações do seu projeto. Você poderá escolher o canal de envio preferido (Gmail, WhatsApp ou E-mail corporativo).
+                    Preencha as informações do seu projeto. O envio é feito diretamente pelo site e nossa equipe técnica responderá por e-mail.
                   </p>
 
+                  {status === "error" && (
+                    <div className="mb-6 p-4 rounded-xl bg-red-950/40 border border-red-500/40 flex items-start gap-3 text-red-200 text-xs animate-in fade-in">
+                      <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block font-semibold">Falha no envio</strong>
+                        <span>{errorMessage}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Anti-spam honeypot */}
+                    <input
+                      type="text"
+                      name="honeypot"
+                      value={formData.honeypot}
+                      onChange={(e) => setFormData({ ...formData, honeypot: e.target.value })}
+                      className="hidden"
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
@@ -351,10 +295,11 @@ export function Contact() {
                         <input
                           type="text"
                           required
+                          disabled={status === "submitting"}
                           value={formData.name}
                           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           placeholder="Ex: Carlos Silva"
-                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-50"
                         />
                       </div>
 
@@ -364,10 +309,11 @@ export function Contact() {
                         </label>
                         <input
                           type="text"
+                          disabled={status === "submitting"}
                           value={formData.company}
                           onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                           placeholder="Nome da sua empresa"
-                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-50"
                         />
                       </div>
                     </div>
@@ -379,10 +325,11 @@ export function Contact() {
                       <input
                         type="email"
                         required
+                        disabled={status === "submitting"}
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="carlos@empresa.com.br"
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-50"
                       />
                     </div>
 
@@ -391,9 +338,10 @@ export function Contact() {
                         Tipo de Necessidade / Solução
                       </label>
                       <select
+                        disabled={status === "submitting"}
                         value={formData.projectType}
                         onChange={(e) => setFormData({ ...formData, projectType: e.target.value })}
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-50"
                       >
                         <option value="Consultoria em Arquitetura & Cloud">Consultoria em Arquitetura & Cloud-Native</option>
                         <option value="Alocação de Tech Lead / Squad Acceleration">Alocação de Tech Lead & Squad Acceleration</option>
@@ -410,10 +358,11 @@ export function Contact() {
                       <textarea
                         rows={4}
                         required
+                        disabled={status === "submitting"}
                         value={formData.message}
                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                         placeholder="Conte-nos sobre os desafios atuais, tecnologias em uso e objetivos de negócio..."
-                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors resize-none"
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors resize-none disabled:opacity-50"
                       />
                     </div>
 
@@ -422,9 +371,18 @@ export function Contact() {
                       variant="primary"
                       size="lg"
                       fullWidth
-                      icon={<Send className="h-4 w-4" />}
+                      disabled={status === "submitting"}
+                      icon={
+                        status === "submitting" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )
+                      }
                     >
-                      Estruturar e Enviar Proposta
+                      {status === "submitting"
+                        ? "Enviando Proposta Diretamente..."
+                        : "Enviar Proposta Corporativa"}
                     </Button>
                   </form>
                 </div>
