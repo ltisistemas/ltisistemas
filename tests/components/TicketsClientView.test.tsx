@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketsClientView } from "@/components/suporte/TicketsClientView";
 import { Role, TicketStatus } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
@@ -101,7 +101,7 @@ describe("components/suporte/TicketsClientView", () => {
     expect(screen.getByText("#102")).toBeInTheDocument();
   });
 
-  it("should filter tickets by search query", () => {
+  it("should filter tickets by search query across multiple ticket attributes", () => {
     render(
       <TicketsClientView
         user={supportUser}
@@ -111,13 +111,38 @@ describe("components/suporte/TicketsClientView", () => {
     );
 
     const searchInput = screen.getByPlaceholderText(/Buscar chamado, tela, empresa/i);
-    fireEvent.change(searchInput, { target: { value: "webhook" } });
 
+    // Filter by description
+    fireEvent.change(searchInput, { target: { value: "excel" } });
+    expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
+    expect(screen.queryByText("Erro no webhook")).toBeNull();
+
+    // Filter by screenName
+    fireEvent.change(searchInput, { target: { value: "Integrações" } });
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
-    expect(screen.queryByText("Dúvida sobre relatório")).toBeNull();
+
+    // Filter by ticket number
+    fireEvent.change(searchInput, { target: { value: "103" } });
+    expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
+
+    // Filter by user name
+    fireEvent.change(searchInput, { target: { value: "Pedro" } });
+    expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
+
+    // Filter by company
+    fireEvent.change(searchInput, { target: { value: "Gamma" } });
+    expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
+
+    // Filter by systemUrl
+    fireEvent.change(searchInput, { target: { value: "gamma.com" } });
+    expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
+
+    // Filter by contractNumber
+    fireEvent.change(searchInput, { target: { value: "CTR-01" } });
+    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
   });
 
-  it("should filter tickets by clicking summary cards", () => {
+  it("should filter tickets using filter pills and clear filters", () => {
     render(
       <TicketsClientView
         user={supportUser}
@@ -126,27 +151,65 @@ describe("components/suporte/TicketsClientView", () => {
       />
     );
 
-    // Click Pendentes card
-    const pendentesCard = screen.getByText("Pendentes");
-    fireEvent.click(pendentesCard);
+    // Click "Abertos (1)" pill
+    const abertosPill = screen.getByRole("button", { name: /Abertos \(1\)/i });
+    fireEvent.click(abertosPill);
+    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    expect(screen.queryByText("Dúvida sobre relatório")).toBeNull();
+
+    // Click "Pendentes (1)" pill
+    const pendentesPill = screen.getByRole("button", { name: /Pendentes \(1\)/i });
+    fireEvent.click(pendentesPill);
     expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
-    expect(screen.queryByText("Erro no webhook")).toBeNull();
 
-    // Click Fechados card
-    const fechadosCard = screen.getByText("Resolvidos / Fechados");
-    fireEvent.click(fechadosCard);
+    // Click "Fechados (1)" pill
+    const fechadosPill = screen.getByRole("button", { name: /Fechados \(1\)/i });
+    fireEvent.click(fechadosPill);
     expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
 
-    // Click Em Aberto card
-    const abertoCard = screen.getByText("Em Aberto");
-    fireEvent.click(abertoCard);
-    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    // Click "Todos (3)" pill
+    const todosPill = screen.getByRole("button", { name: /Todos \(3\)/i });
+    fireEvent.click(todosPill);
 
-    // Click Total card
-    const totalCard = screen.getByText("Total Registrado");
-    fireEvent.click(totalCard);
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
     expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
+  });
+
+  it("should handle client role rendering", () => {
+    const clientUser: SessionPayload = {
+      userId: "cli_1",
+      name: "Carlos Cliente",
+      email: "carlos@alpha.com",
+      company: "Alpha Corp",
+      role: Role.CLIENTE,
+    };
+
+    render(
+      <TicketsClientView
+        user={clientUser}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+      />
+    );
+
+    expect(screen.getByText("Meus Chamados")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cadastrar Usuário/i })).toBeNull();
+  });
+
+  it("should open modal when clicking 'Abrir Novo Chamado' in empty state", () => {
+    render(
+      <TicketsClientView
+        user={supportUser}
+        initialTickets={[]}
+        initialStats={{ total: 0, aberto: 0, pendente: 0, fechado: 0 }}
+      />
+    );
+
+    expect(screen.getByText("Nenhum chamado encontrado")).toBeInTheDocument();
+    const openButtons = screen.getAllByRole("button", { name: /Abrir Novo Chamado/i });
+    fireEvent.click(openButtons[openButtons.length - 1]);
+
+    expect(screen.getByText("Abrir Novo Chamado de Suporte")).toBeInTheDocument();
   });
 
   it("should open modals when clicking buttons", () => {
@@ -158,13 +221,92 @@ describe("components/suporte/TicketsClientView", () => {
       />
     );
 
-    const newTicketBtn = screen.getByRole("button", { name: /Abrir Novo Chamado/i });
-    fireEvent.click(newTicketBtn);
+    const newTicketBtns = screen.getAllByRole("button", { name: /Abrir Novo Chamado/i });
+    fireEvent.click(newTicketBtns[0]);
     expect(screen.getByText("Abrir Novo Chamado de Suporte")).toBeInTheDocument();
 
     const createUserBtn = screen.getByRole("button", { name: /Cadastrar Usuário/i });
     fireEvent.click(createUserBtn);
     expect(screen.getByText("Cadastrar Novo Usuário")).toBeInTheDocument();
+  });
+
+
+  it("should handle ticket created callback and redirect", async () => {
+    render(
+      <TicketsClientView
+        user={supportUser}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+      />
+    );
+
+    const newTicketBtn = screen.getByRole("button", { name: /Abrir Novo Chamado/i });
+    fireEvent.click(newTicketBtn);
+
+    // Fill ticket modal form
+    fireEvent.change(screen.getByPlaceholderText(/Ex: Erro ao gerar relatório/i), {
+      target: { value: "Novo Chamado Teste" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ex: Tela de associados/i), {
+      target: { value: "Tela de Teste" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu na tela/i), {
+      target: { value: "Descrição com mais de 10 caracteres detalhando o problema." },
+    });
+
+    // Mock createTicketAction
+    const ticketActions = await import("@/lib/actions/ticket-actions");
+    vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
+      success: true,
+      data: { id: "tkt_created", ticketNumber: 999 } as any,
+    });
+
+    const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(ticketActions.createTicketAction).toHaveBeenCalled();
+    });
+  });
+
+  it("should handle user created callback in support mode", async () => {
+    render(
+      <TicketsClientView
+        user={supportUser}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+      />
+    );
+
+    const createUserBtn = screen.getByRole("button", { name: /Cadastrar Usuário/i });
+    fireEvent.click(createUserBtn);
+
+    const authActions = await import("@/lib/actions/auth-actions");
+    vi.spyOn(authActions, "createUserAction").mockResolvedValue({
+      success: true,
+      data: { id: "usr_created", email: "novo@corp.com", name: "Novo" },
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/Carlos Oliveira/i), {
+      target: { value: "Novo" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/carlos@empresa.com.br/i), {
+      target: { value: "novo@corp.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Empresa XYZ/i), {
+      target: { value: "Corp" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Mínimo 6 dígitos/i), {
+      target: { value: "123456" },
+    });
+
+    const submitButtons = screen.getAllByRole("button", { name: /Cadastrar Usuário/i });
+    const modalSubmitBtn = submitButtons.find((btn) => btn.getAttribute("type") === "submit") || submitButtons[1];
+    fireEvent.click(modalSubmitBtn);
+
+    await waitFor(() => {
+      expect(authActions.createUserAction).toHaveBeenCalled();
+    });
   });
 
   it("should render empty state when no tickets match filter", () => {
@@ -179,3 +321,6 @@ describe("components/suporte/TicketsClientView", () => {
     expect(screen.getByText("Nenhum chamado encontrado")).toBeInTheDocument();
   });
 });
+
+
+

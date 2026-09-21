@@ -17,5 +17,6 @@
 
 - [x] 4.1 Update unit tests in `tests/unit/actions/` and `tests/unit/auth/` to test `screenName`, 6h SLA calculation, `INATIVO` user login refusal, and soft-delete behaviors.
 - [x] 4.2 Update component tests in `tests/components/` for `CreateUserModal`, `UsersClientView`, `CreateTicketModal`, `TicketsClientView`, `TicketDetailClientView`, and `SlaBadge`.
-- [ ] 4.3 Run `npm run test:coverage` to verify that all tests pass and code coverage remains at or above 85%.
-- [ ] 4.4 Run `npm run build` to ensure zero TypeScript errors and production build succeeds.
+- [x] 4.3 Run `npm run test:coverage` to verify that all tests pass and code coverage remains at or above 85%.
+- [x] 4.4 Run `npm run build` to ensure zero TypeScript errors and production build succeeds.
+

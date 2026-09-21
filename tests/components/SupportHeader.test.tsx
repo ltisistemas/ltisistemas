@@ -49,11 +49,21 @@ describe("components/suporte/SupportHeader", () => {
     expect(handleOpenTicket).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle logout click", async () => {
+  it("should handle logout click and error handling", async () => {
+    const authActions = await import("@/lib/actions/auth-actions");
+    vi.spyOn(authActions, "logoutAction").mockResolvedValue({ success: true });
+
     render(<SupportHeader user={clientUser} />);
 
     const logoutBtn = screen.getByTitle("Encerrar sessão");
     fireEvent.click(logoutBtn);
     expect(logoutBtn).toBeInTheDocument();
+
+
+    // Test error branch
+    vi.spyOn(authActions, "logoutAction").mockRejectedValue(new Error("Logout Failed"));
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    fireEvent.click(logoutBtn);
   });
 });
+

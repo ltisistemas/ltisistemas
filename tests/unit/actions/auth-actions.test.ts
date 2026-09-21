@@ -44,6 +44,9 @@ describe("lib/actions/auth-actions", () => {
         email: "luiz@lti.com",
         company: "LTI",
         contractNumber: "01",
+        systemUrl: null,
+        status: "ATIVO" as const,
+        deletedAt: null,
         role: Role.CLIENTE,
         passwordHash: "some_hash",
         createdAt: new Date(),
@@ -51,6 +54,7 @@ describe("lib/actions/auth-actions", () => {
       });
 
       vi.spyOn(passwordModule, "verifyPassword").mockResolvedValue(false);
+
 
       const res = await loginAction("luiz@lti.com", "wrongpass");
       expect(res.success).toBe(false);

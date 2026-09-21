@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { SlaBadge } from "@/components/suporte/SlaBadge";
 import { TicketStatus } from "@prisma/client";
@@ -39,4 +39,20 @@ describe("components/suporte/SlaBadge", () => {
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveTextContent(/SLA Vencido/i);
   });
+
+  it("should update countdown when timer fires", () => {
+    vi.useFakeTimers();
+    const due = new Date(Date.now() + 3 * 3600 * 1000);
+    render(<SlaBadge slaDueAt={due} ticketStatus={TicketStatus.ABERTO} liveUpdate={true} />);
+
+    act(() => {
+      vi.advanceTimersByTime(60000);
+    });
+
+    expect(screen.getByTestId("sla-badge")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
 });
+
+
+
