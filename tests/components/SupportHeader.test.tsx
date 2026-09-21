@@ -32,12 +32,14 @@ describe("components/suporte/SupportHeader", () => {
     expect(screen.getByText("Usuários")).toBeInTheDocument();
   });
 
-  it("should not render 'Usuários' link for CLIENTE role", () => {
+  it("should not render 'Usuários' link for CLIENTE role and never render site link", () => {
     render(<SupportHeader user={clientUser} />);
 
     expect(screen.getByText("CLIENTE")).toBeInTheDocument();
     expect(screen.getByText("Cliente Empresa")).toBeInTheDocument();
     expect(screen.queryByText("Usuários")).toBeNull();
+    expect(screen.queryByText("Site")).toBeNull();
+    expect(screen.queryByTitle("Voltar ao site institucional")).toBeNull();
   });
 
   it("should trigger onOpenNewTicket when click 'Novo Chamado'", () => {

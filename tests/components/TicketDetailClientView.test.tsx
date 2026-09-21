@@ -67,6 +67,19 @@ describe("components/suporte/TicketDetailClientView", () => {
     expect(screen.getByText("screenshot_erro.png")).toBeInTheDocument();
   });
 
+  it("should render back button and navigate when clicked", () => {
+    render(
+      <TicketDetailClientView
+        user={supportUser}
+        initialTicket={sampleTicket}
+      />
+    );
+
+    const backBtn = screen.getByRole("button", { name: "Voltar para a lista de chamados" });
+    expect(backBtn).toBeInTheDocument();
+    fireEvent.click(backBtn);
+  });
+
   it("should allow user to soft-delete ticket", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(ticketActions, "deleteTicketAction").mockResolvedValue({

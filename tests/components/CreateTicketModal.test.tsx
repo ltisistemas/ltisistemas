@@ -133,4 +133,56 @@ describe("components/suporte/CreateTicketModal", () => {
       expect(screen.getByText("Erro no servidor ao salvar chamado")).toBeInTheDocument();
     });
   });
+
+  it("should render client selector for SUPORTE and submit with targetUserId", async () => {
+    const handleSuccess = vi.fn();
+    const handleClose = vi.fn();
+
+    const createSpy = vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
+      success: true,
+      data: { id: "tkt_sup_1", ticketNumber: 88, slaDueAt: new Date() },
+    });
+
+    const mockClients = [
+      { id: "cli_1", name: "Empresa Alfa", company: "Alfa Corp", email: "alfa@corp.com" },
+    ];
+
+    render(
+      <CreateTicketModal
+        isOpen={true}
+        onClose={handleClose}
+        onSuccess={handleSuccess}
+        userRole="SUPORTE"
+        clients={mockClients}
+      />
+    );
+
+    expect(screen.getByText(/Cliente Solicitante/i)).toBeInTheDocument();
+    const clientSelect = screen.getByRole("combobox");
+    fireEvent.change(clientSelect, { target: { value: "cli_1" } });
+
+    const titleInput = screen.getByPlaceholderText(/Erro ao gerar relatório/i);
+    const screenInput = screen.getByPlaceholderText(/Tela de associados/i);
+    const descInput = screen.getByPlaceholderText(/Explique o que aconteceu/i);
+
+    fireEvent.change(titleInput, { target: { value: "Suporte abrindo chamado" } });
+    fireEvent.change(screenInput, { target: { value: "Dashboard" } });
+    fireEvent.change(descInput, { target: { value: "Cliente ligou relatando problema" } });
+
+    const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Suporte abrindo chamado",
+          screenName: "Dashboard",
+          description: "Cliente ligou relatando problema",
+          targetUserId: "cli_1",
+        })
+      );
+      expect(handleSuccess).toHaveBeenCalledWith("tkt_sup_1", 88);
+      expect(handleClose).toHaveBeenCalled();
+    });
+  });
 });

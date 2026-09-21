@@ -19,9 +19,9 @@ export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     case "ABERTO":
       return (
         <span
-          className={`inline-flex items-center font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 ${sizeClasses[size]}`}
+          className={`inline-flex items-center font-medium rounded-full bg-[#d1e7dd] text-[#0f5132] border border-[#badbcc] ${sizeClasses[size]}`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#198754] animate-pulse" />
           <AlertCircle className={size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5"} />
           Aberto
         </span>
@@ -30,7 +30,7 @@ export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     case "PENDENTE":
       return (
         <span
-          className={`inline-flex items-center font-medium rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25 ${sizeClasses[size]}`}
+          className={`inline-flex items-center font-medium rounded-full bg-[#fff3cd] text-[#664d03] border border-[#ffecb5] ${sizeClasses[size]}`}
         >
           <Clock className={size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5"} />
           Pendente
@@ -40,7 +40,7 @@ export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     case "FECHADO":
       return (
         <span
-          className={`inline-flex items-center font-medium rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 ${sizeClasses[size]}`}
+          className={`inline-flex items-center font-medium rounded-full bg-[#e2e3e5] text-[#41464b] border border-[#d3d6d8] ${sizeClasses[size]}`}
         >
           <CheckCircle2 className={size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5"} />
           Fechado
@@ -50,7 +50,7 @@ export function StatusBadge({ status, size = "md" }: StatusBadgeProps) {
     default:
       return (
         <span
-          className={`inline-flex items-center font-medium rounded-full bg-slate-500/10 text-slate-300 border border-slate-700 ${sizeClasses[size]}`}
+          className={`inline-flex items-center font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200 ${sizeClasses[size]}`}
         >
           {status}
         </span>

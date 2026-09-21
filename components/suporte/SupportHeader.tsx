@@ -9,10 +9,7 @@ import {
   Users,
   PlusCircle,
   Layers,
-  ArrowLeft,
-  ShieldAlert,
   Building,
-  FileText,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { SessionPayload } from "@/lib/auth/session";
@@ -46,42 +43,31 @@ export function SupportHeader({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#080c14]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand & Portal Title */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="group flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors text-xs font-medium"
-              title="Voltar ao site institucional"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="hidden sm:inline">Site</span>
-            </Link>
-
-            <div className="h-4 w-px bg-slate-800 hidden sm:block" />
-
             <Link href="/suporte/chamados" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/20 text-slate-950 font-bold">
-                <LifeBuoy className="w-5 h-5 text-slate-950" />
+              <div className="w-8 h-8 rounded-lg bg-[#0d6efd] flex items-center justify-center shadow-sm text-white font-bold">
+                <LifeBuoy className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm tracking-tight text-white">
+                  <span className="font-bold text-sm tracking-tight text-gray-900">
                     LTI Sistemas
                   </span>
                   <span
                     className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                       isSupport
-                        ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
-                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        ? "bg-blue-50 text-[#0d6efd] border-blue-200"
+                        : "bg-green-50 text-[#198754] border-green-200"
                     }`}
                   >
                     {isSupport ? "SUPORTE" : "CLIENTE"}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 truncate max-w-[160px] sm:max-w-xs">
+                <span className="text-[11px] text-gray-500 truncate max-w-[160px] sm:max-w-xs">
                   {isSupport ? "Console de Atendimento" : "Central de Incidentes"}
                 </span>
               </div>
@@ -95,8 +81,8 @@ export function SupportHeader({
                 href="/suporte/chamados"
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                   activeTab === "chamados"
-                    ? "bg-slate-800 text-cyan-400 border border-slate-700 shadow-sm"
-                    : "text-slate-300 hover:text-white hover:bg-slate-850"
+                    ? "bg-blue-50 text-[#0d6efd] border border-blue-200 shadow-xs font-semibold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
@@ -108,8 +94,8 @@ export function SupportHeader({
                   href="/suporte/usuarios"
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
                     activeTab === "usuarios"
-                      ? "bg-slate-800 text-cyan-400 border border-slate-700 shadow-sm"
-                      : "text-slate-300 hover:text-white hover:bg-slate-850"
+                      ? "bg-blue-50 text-[#0d6efd] border border-blue-200 shadow-xs font-semibold"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -118,29 +104,29 @@ export function SupportHeader({
               )}
             </nav>
 
-            {/* Quick Open Ticket Button */}
+            {/* Quick Open Ticket Button (Bootstrap Success) */}
             {onOpenNewTicket && (
               <button
                 onClick={onOpenNewTicket}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-semibold shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-semibold shadow-sm transition-all"
               >
-                <PlusCircle className="w-4 h-4 text-slate-950" />
+                <PlusCircle className="w-4 h-4 text-white" />
                 <span className="hidden sm:inline">Novo Chamado</span>
                 <span className="sm:hidden">Novo</span>
               </button>
             )}
 
             {/* User Profile Summary */}
-            <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-800 text-xs text-slate-300">
+            <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-gray-200 text-xs text-gray-700">
               <div className="flex flex-col text-right">
-                <span className="font-medium text-white truncate max-w-[140px]">
+                <span className="font-semibold text-gray-900 truncate max-w-[140px]">
                   {user.name}
                 </span>
-                <span className="text-[11px] text-slate-400 flex items-center gap-1 justify-end truncate max-w-[140px]">
-                  <Building className="w-3 h-3 text-slate-500" />
+                <span className="text-[11px] text-gray-500 flex items-center gap-1 justify-end truncate max-w-[140px]">
+                  <Building className="w-3 h-3 text-gray-400" />
                   {user.company}
                   {user.contractNumber && (
-                    <span className="text-slate-500 text-[10px]">
+                    <span className="text-gray-400 text-[10px]">
                       ({user.contractNumber})
                     </span>
                   )}
@@ -148,11 +134,11 @@ export function SupportHeader({
               </div>
             </div>
 
-            {/* Logout Button */}
+            {/* Logout Button (Bootstrap Danger on hover) */}
             <button
               onClick={handleLogout}
               disabled={loggingOut}
-              className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:text-[#dc3545] hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
               title="Encerrar sessão"
             >
               <LogOut className="w-4 h-4" />

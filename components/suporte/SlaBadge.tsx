@@ -45,7 +45,7 @@ export function SlaBadge({
     return (
       <span
         data-testid="sla-badge"
-        className={`inline-flex items-center font-medium rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 ${sizeClasses[size]}`}
+        className={`inline-flex items-center font-medium rounded-full bg-[#e2e3e5] text-[#41464b] border border-[#d3d6d8] ${sizeClasses[size]}`}
       >
         <CheckCircle2 className={iconSize} />
         <span>{slaInfo.label}</span>
@@ -57,9 +57,9 @@ export function SlaBadge({
     return (
       <span
         data-testid="sla-badge"
-        className={`inline-flex items-center font-medium rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 ${sizeClasses[size]}`}
+        className={`inline-flex items-center font-medium rounded-full bg-[#f8d7da] text-[#842029] border border-[#f5c2c7] ${sizeClasses[size]}`}
       >
-        <AlertOctagon className={`${iconSize} text-rose-400 animate-pulse`} />
+        <AlertOctagon className={`${iconSize} text-[#dc3545] animate-pulse`} />
         <span>{slaInfo.label}</span>
       </span>
     );
@@ -69,7 +69,7 @@ export function SlaBadge({
     return (
       <span
         data-testid="sla-badge"
-        className={`inline-flex items-center font-medium rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 ${sizeClasses[size]}`}
+        className={`inline-flex items-center font-medium rounded-full bg-[#fff3cd] text-[#664d03] border border-[#ffecb5] ${sizeClasses[size]}`}
       >
         <AlertTriangle className={iconSize} />
         <span>{slaInfo.label}</span>
@@ -80,7 +80,7 @@ export function SlaBadge({
   return (
     <span
       data-testid="sla-badge"
-      className={`inline-flex items-center font-medium rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 ${sizeClasses[size]}`}
+      className={`inline-flex items-center font-medium rounded-full bg-[#cff4fc] text-[#055160] border border-[#b6effb] ${sizeClasses[size]}`}
     >
       <Clock className={iconSize} />
       <span>{slaInfo.label}</span>

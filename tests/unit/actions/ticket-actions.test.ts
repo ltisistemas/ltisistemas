@@ -172,6 +172,73 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.data?.ticketNumber).toBe(42);
       expect(res.data?.slaDueAt).toBeDefined();
     });
+
+    it("should allow SUPORTE to create ticket for specific client using targetUserId", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "suporte@ltisistemas.com",
+        company: "LTI Sistemas",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        id: "cli_target",
+        deletedAt: null,
+      } as any);
+
+      const createSpy = vi.spyOn(prisma.ticket, "create").mockResolvedValue({
+        id: "tkt_101",
+        ticketNumber: 43,
+        title: "Problema do cliente",
+        screenName: "Tela Inicial",
+        description: "Suporte abrindo chamado para cliente",
+        status: TicketStatus.ABERTO,
+        slaDueAt: new Date(),
+        deletedAt: null,
+        userId: "cli_target",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      const res = await createTicketAction({
+        title: "Problema do cliente",
+        screenName: "Tela Inicial",
+        description: "Suporte abrindo chamado para cliente",
+        targetUserId: "cli_target",
+      });
+
+      expect(res.success).toBe(true);
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: "cli_target",
+          }),
+        })
+      );
+    });
+
+    it("should reject SUPORTE ticket creation when target client does not exist or is deleted", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "suporte@ltisistemas.com",
+        company: "LTI Sistemas",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue(null);
+
+      const res = await createTicketAction({
+        title: "Problema",
+        screenName: "Tela",
+        description: "Desc",
+        targetUserId: "cli_invalido",
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Cliente selecionado não foi encontrado");
+    });
   });
 
   describe("getTicketsAction", () => {
@@ -240,6 +307,28 @@ describe("lib/actions/ticket-actions", () => {
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { deletedAt: null, status: TicketStatus.PENDENTE },
+        })
+      );
+    });
+
+    it("should allow SUPORTE to filter tickets by clientId", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "suporte@ltisistemas.com",
+        company: "LTI Sistemas",
+        role: Role.SUPORTE,
+      });
+
+      const findManySpy = vi.spyOn(prisma.ticket, "findMany").mockResolvedValue([]);
+      vi.spyOn(prisma.ticket, "count").mockResolvedValue(0);
+
+      const res = await getTicketsAction("ALL", "cli_specific");
+      expect(res.success).toBe(true);
+
+      expect(findManySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { deletedAt: null, userId: "cli_specific" },
         })
       );
     });

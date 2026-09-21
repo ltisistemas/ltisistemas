@@ -56,6 +56,7 @@ export async function createTicketAction(data: {
   title: string;
   description: string;
   screenName: string;
+  targetUserId?: string;
   attachments?: AttachmentInput[];
 }): Promise<ActionResult<{ id: string; ticketNumber: number; slaDueAt: Date }>> {
   try {
@@ -85,6 +86,18 @@ export async function createTicketAction(data: {
       }
     }
 
+    let assignedUserId = session.userId;
+    if (session.role === "SUPORTE" && data.targetUserId) {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: data.targetUserId },
+        select: { id: true, deletedAt: true },
+      });
+      if (!targetUser || targetUser.deletedAt) {
+        return { success: false, error: "Cliente selecionado não foi encontrado ou está inativo." };
+      }
+      assignedUserId = targetUser.id;
+    }
+
     // 6-hour SLA for initial analysis
     const slaDueAt = new Date(Date.now() + 6 * 60 * 60 * 1000);
 
@@ -95,7 +108,7 @@ export async function createTicketAction(data: {
         screenName,
         status: TicketStatus.ABERTO,
         slaDueAt,
-        userId: session.userId,
+        userId: assignedUserId,
         attachments: rawAttachments.length > 0
           ? {
               create: rawAttachments.slice(0, 3).map((att) => ({
@@ -133,10 +146,11 @@ export async function createTicketAction(data: {
 /**
  * Retrieves tickets with role-based isolation and soft-delete filtering:
  * - CLIENTE sees only their own active tickets
- * - SUPORTE sees all active tickets across all clients
+ * - SUPORTE sees all active tickets across all clients (or filtered by clientId)
  */
 export async function getTicketsAction(
-  filterStatus?: TicketStatus | "ALL"
+  filterStatus?: TicketStatus | "ALL",
+  filterClientId?: string
 ): Promise<ActionResult<{ tickets: TicketSummary[]; stats: TicketStats }>> {
   try {
     const session = await requireSession();
@@ -144,10 +158,16 @@ export async function getTicketsAction(
     const isSupport = session.role === "SUPORTE";
     const statusCondition = filterStatus && filterStatus !== "ALL" ? { status: filterStatus } : {};
 
-    // Filter out soft-deleted tickets and by client userId if not support
+    // Filter out soft-deleted tickets and by client userId if not support or if support filtered by clientId
+    const clientCondition = isSupport
+      ? filterClientId && filterClientId !== "ALL"
+        ? { userId: filterClientId }
+        : {}
+      : { userId: session.userId };
+
     const baseFilter = {
       deletedAt: null,
-      ...(isSupport ? {} : { userId: session.userId }),
+      ...clientCondition,
     };
     const queryFilter = { ...baseFilter, ...statusCondition };
 

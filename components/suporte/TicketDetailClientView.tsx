@@ -1,25 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building,
   User,
-  Mail,
-  FileText,
   Calendar,
   Clock,
   Image as ImageIcon,
-  CheckCircle2,
   AlertCircle,
-  Loader2,
   Maximize2,
-  Download,
   Globe,
   Layout,
   Trash2,
+  FileText,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketDetail, updateTicketStatusAction, deleteTicketAction } from "@/lib/actions/ticket-actions";
@@ -115,24 +110,27 @@ export function TicketDetailClientView({
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       <SupportHeader user={user} activeTab="chamados" />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back link & Actions */}
+        {/* Back Button & Actions Bar */}
         <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/suporte/chamados"
-            className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors"
+          <button
+            type="button"
+            onClick={() => router.push("/suporte/chamados")}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-900 shadow-xs transition-all"
+            aria-label="Voltar para a lista de chamados"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-gray-600" />
             <span>Voltar para a lista de chamados</span>
-          </Link>
+          </button>
 
           <button
+            type="button"
             onClick={handleDeleteTicket}
             disabled={isDeleting}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-xs font-medium transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#dc3545] hover:bg-[#bb2d3b] text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
             title="Excluir chamado (Soft-delete)"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -142,46 +140,46 @@ export function TicketDetailClientView({
 
         {/* Status Error Alert */}
         {statusError && (
-          <div className="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-400 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="mb-6 p-3 rounded-xl bg-[#f8d7da] border border-[#f5c2c7] text-xs text-[#842029] flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-[#dc3545]" />
             <span>{statusError}</span>
           </div>
         )}
 
         {/* Main Ticket Header Card */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0d131f] p-6 sm:p-8 shadow-xl mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200">
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-sm font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-500/30 px-3 py-1 rounded-xl">
+                <span className="font-mono text-sm font-bold text-[#0d6efd] bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
                   Chamado #{ticket.ticketNumber}
                 </span>
                 <StatusBadge status={ticket.status} size="lg" />
                 <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200 bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-xl">
-                  <Layout className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 px-3 py-1 rounded-lg">
+                  <Layout className="w-3.5 h-3.5 text-gray-500" />
                   Tela: {ticket.screenName}
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                 {ticket.title}
               </h1>
             </div>
 
-            {/* Support Status Switcher Controls */}
+            {/* Support Status Switcher Controls (Bootstrap Semantic Colors) */}
             {isSupport && (
               <div className="flex flex-col items-start md:items-end gap-2">
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-gray-500 font-medium">
                   Gerenciar Status do Chamado:
                 </span>
-                <div className="inline-flex items-center p-1 rounded-xl bg-slate-900 border border-slate-700/80 gap-1">
+                <div className="inline-flex items-center p-1 rounded-lg bg-gray-100 border border-gray-200 gap-1">
                   <button
                     onClick={() => handleStatusChange(TicketStatus.ABERTO)}
                     disabled={isUpdatingStatus}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                       ticket.status === TicketStatus.ABERTO
-                        ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                        : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800"
+                        ? "bg-[#198754] text-white shadow-xs"
+                        : "text-gray-600 hover:text-[#198754] hover:bg-white"
                     }`}
                   >
                     Aberto
@@ -190,10 +188,10 @@ export function TicketDetailClientView({
                   <button
                     onClick={() => handleStatusChange(TicketStatus.PENDENTE)}
                     disabled={isUpdatingStatus}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                       ticket.status === TicketStatus.PENDENTE
-                        ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
-                        : "text-slate-400 hover:text-amber-400 hover:bg-slate-800"
+                        ? "bg-[#ffc107] text-gray-900 shadow-xs"
+                        : "text-gray-600 hover:text-[#b58105] hover:bg-white"
                     }`}
                   >
                     Pendente
@@ -202,10 +200,10 @@ export function TicketDetailClientView({
                   <button
                     onClick={() => handleStatusChange(TicketStatus.FECHADO)}
                     disabled={isUpdatingStatus}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                       ticket.status === TicketStatus.FECHADO
-                        ? "bg-slate-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+                        ? "bg-[#6c757d] text-white shadow-xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white"
                     }`}
                   >
                     Fechado
@@ -216,25 +214,25 @@ export function TicketDetailClientView({
           </div>
 
           {/* Metadata Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5 text-xs text-slate-400">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5 text-xs text-gray-600">
             <div className="flex items-center gap-2.5">
-              <User className="w-4 h-4 text-cyan-500 shrink-0" />
+              <User className="w-4 h-4 text-[#0d6efd] shrink-0" />
               <div>
-                <span className="block text-slate-500 text-[10px]">Solicitante</span>
-                <span className="text-slate-200 font-medium">{ticket.user.name}</span>
+                <span className="block text-gray-400 text-[10px]">Solicitante</span>
+                <span className="text-gray-900 font-medium">{ticket.user.name}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5">
-              <Building className="w-4 h-4 text-cyan-500 shrink-0" />
+              <Building className="w-4 h-4 text-[#0d6efd] shrink-0" />
               <div>
-                <span className="block text-slate-500 text-[10px]">Empresa / Contrato</span>
-                <span className="text-slate-200 font-medium">
+                <span className="block text-gray-400 text-[10px]">Empresa / Contrato</span>
+                <span className="text-gray-900 font-medium">
                   {ticket.user.company}
                   {ticket.user.contractNumber ? ` (${ticket.user.contractNumber})` : ""}
                 </span>
                 {ticket.user.systemUrl && (
-                  <span className="flex items-center gap-1 text-cyan-400 text-[11px] mt-0.5">
+                  <span className="flex items-center gap-1 text-[#0d6efd] text-[11px] mt-0.5">
                     <Globe className="w-3 h-3" />
                     {ticket.user.systemUrl.startsWith("http") ? (
                       <a
@@ -254,50 +252,50 @@ export function TicketDetailClientView({
             </div>
 
             <div className="flex items-center gap-2.5">
-              <Calendar className="w-4 h-4 text-cyan-500 shrink-0" />
+              <Calendar className="w-4 h-4 text-[#0d6efd] shrink-0" />
               <div>
-                <span className="block text-slate-500 text-[10px]">Data de Abertura</span>
-                <span className="text-slate-200 font-medium">{formatDate(ticket.createdAt)}</span>
+                <span className="block text-gray-400 text-[10px]">Data de Abertura</span>
+                <span className="text-gray-900 font-medium">{formatDate(ticket.createdAt)}</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5">
-              <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
+              <Clock className="w-4 h-4 text-[#0d6efd] shrink-0" />
               <div>
-                <span className="block text-slate-500 text-[10px]">Última Atualização</span>
-                <span className="text-slate-200 font-medium">{formatDate(ticket.updatedAt)}</span>
+                <span className="block text-gray-400 text-[10px]">Última Atualização</span>
+                <span className="text-gray-900 font-medium">{formatDate(ticket.updatedAt)}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Problem Description Card */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0d131f] p-6 sm:p-8 shadow-xl mb-6">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-cyan-400" />
+        <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs mb-6">
+          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#0d6efd]" />
             <span>Descrição do Incidente</span>
           </h2>
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
             {ticket.description}
           </div>
         </div>
 
         {/* Attachments / Screenshots Section */}
-        <div className="rounded-2xl border border-slate-800 bg-[#0d131f] p-6 sm:p-8 shadow-xl">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-[#0d6efd]" />
               <span>Evidências e Screenshots ({ticket.attachments.length})</span>
             </h2>
             {ticket.attachments.length > 0 && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-gray-500">
                 Clique na imagem para expandir
               </span>
             )}
           </div>
 
           {ticket.attachments.length === 0 ? (
-            <div className="p-8 rounded-xl bg-slate-900/40 border border-slate-800/80 text-center text-xs text-slate-500">
+            <div className="p-8 rounded-xl bg-gray-50 border border-gray-200 text-center text-xs text-gray-500">
               Nenhuma imagem ou captura de tela foi anexada a este chamado.
             </div>
           ) : (
@@ -311,7 +309,7 @@ export function TicketDetailClientView({
                       fileName: att.fileName,
                     })
                   }
-                  className="group relative rounded-xl overflow-hidden border border-slate-800 hover:border-cyan-500/50 bg-slate-950 aspect-video cursor-pointer transition-all shadow-md hover:shadow-cyan-500/10"
+                  className="group relative rounded-xl overflow-hidden border border-gray-200 hover:border-[#0d6efd] bg-gray-100 aspect-video cursor-pointer transition-all shadow-xs hover:shadow-md"
                 >
                   <img
                     src={att.base64Data}
@@ -319,10 +317,10 @@ export function TicketDetailClientView({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
-                    <Maximize2 className="w-5 h-5 text-cyan-400" />
+                    <Maximize2 className="w-5 h-5 text-white" />
                     <span className="text-xs font-semibold">Visualizar</span>
                   </div>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-[11px] text-slate-200 truncate">
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-[11px] text-white truncate">
                     {att.fileName}
                   </div>
                 </div>

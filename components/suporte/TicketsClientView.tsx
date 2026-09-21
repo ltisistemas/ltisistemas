@@ -18,48 +18,56 @@ import {
   ArrowRight,
   UserPlus,
   Inbox,
-  FileText,
-  Globe,
   Layout,
+  Globe,
+  Users,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
 import { SupportHeader } from "./SupportHeader";
-import { CreateTicketModal } from "./CreateTicketModal";
+import { CreateTicketModal, ClientOption } from "./CreateTicketModal";
 import { CreateUserModal } from "./CreateUserModal";
+import TicketSuccessModal from "./TicketSuccessModal";
 import { TicketStatus } from "@prisma/client";
 
 interface TicketsClientViewProps {
   user: SessionPayload;
   initialTickets: TicketSummary[];
   initialStats: TicketStats;
+  clients?: ClientOption[];
 }
 
 export function TicketsClientView({
   user,
   initialTickets,
   initialStats,
+  clients = [],
 }: TicketsClientViewProps) {
   const router = useRouter();
   const [tickets, setTickets] = useState<TicketSummary[]>(initialTickets);
   const [stats, setStats] = useState<TicketStats>(initialStats);
   const [statusFilter, setStatusFilter] = useState<"ALL" | TicketStatus>("ALL");
+  const [clientFilter, setClientFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [successModalInfo, setSuccessModalInfo] = useState<{ id: string; ticketNumber: number } | null>(null);
 
   const isSupport = user.role === "SUPORTE";
 
-  // Filter tickets by active tab and search query
+  // Filter tickets by status, client and search query
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
       const matchesStatus =
         statusFilter === "ALL" ? true : ticket.status === statusFilter;
 
+      const matchesClient =
+        clientFilter === "ALL" || !clientFilter ? true : ticket.user.id === clientFilter;
+
       const q = searchQuery.toLowerCase().trim();
-      if (!q) return matchesStatus;
+      if (!q) return matchesStatus && matchesClient;
 
       const matchesSearch =
         ticket.title.toLowerCase().includes(q) ||
@@ -72,13 +80,13 @@ export function TicketsClientView({
         (ticket.user.contractNumber &&
           ticket.user.contractNumber.toLowerCase().includes(q));
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesClient && matchesSearch;
     });
-  }, [tickets, statusFilter, searchQuery]);
+  }, [tickets, statusFilter, clientFilter, searchQuery]);
 
-  const handleTicketCreated = (newTicketId: string) => {
+  const handleTicketCreated = (newTicketId: string, ticketNumber: number) => {
+    setSuccessModalInfo({ id: newTicketId, ticketNumber });
     router.refresh();
-    router.push(`/suporte/chamados/${newTicketId}`);
   };
 
   const handleUserCreated = () => {
@@ -97,7 +105,7 @@ export function TicketsClientView({
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       {/* Top Header */}
       <SupportHeader
         user={user}
@@ -108,15 +116,15 @@ export function TicketsClientView({
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome & Action Bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2.5">
               <span>{isSupport ? "Painel Geral de Atendimento" : "Meus Chamados"}</span>
-              <span className="text-xs font-normal text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+              <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2.5 py-1 rounded-full">
                 {stats.total} {stats.total === 1 ? "chamado" : "chamados"}
               </span>
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-gray-500 mt-1">
               {isSupport
                 ? "Visualize, gerencie e responda aos incidentes de todos os clientes e sistemas."
                 : `Acompanhe o status e histórico de solicitações da ${user.company}.`}
@@ -127,18 +135,18 @@ export function TicketsClientView({
             {isSupport && (
               <button
                 onClick={() => setIsUserModalOpen(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0d6efd] hover:bg-[#0b5ed7] text-white text-xs font-semibold shadow-sm transition-all"
               >
-                <UserPlus className="w-4 h-4 text-cyan-400" />
+                <UserPlus className="w-4 h-4 text-white" />
                 <span>Cadastrar Usuário</span>
               </button>
             )}
 
             <button
               onClick={() => setIsTicketModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-bold shadow-sm transition-all"
             >
-              <PlusCircle className="w-4 h-4 text-slate-950" />
+              <PlusCircle className="w-4 h-4 text-white" />
               <span>Abrir Novo Chamado</span>
             </button>
           </div>
@@ -149,17 +157,17 @@ export function TicketsClientView({
           {/* Total */}
           <div
             onClick={() => setStatusFilter("ALL")}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all ${
+            className={`cursor-pointer rounded-xl p-4 border transition-all ${
               statusFilter === "ALL"
-                ? "bg-slate-800/90 border-cyan-500/50 shadow-md shadow-cyan-500/10"
-                : "bg-[#0d131f] border-slate-800 hover:border-slate-700"
+                ? "bg-white border-[#0d6efd] ring-2 ring-[#0d6efd]/20 shadow-sm"
+                : "bg-white border-gray-200 hover:border-gray-300 shadow-xs"
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
               <span>Total Registrado</span>
-              <Inbox className="w-4 h-4 text-slate-500" />
+              <Inbox className="w-4 h-4 text-gray-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">
               {stats.total}
             </div>
           </div>
@@ -167,17 +175,17 @@ export function TicketsClientView({
           {/* Abertos */}
           <div
             onClick={() => setStatusFilter(TicketStatus.ABERTO)}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all ${
+            className={`cursor-pointer rounded-xl p-4 border transition-all ${
               statusFilter === TicketStatus.ABERTO
-                ? "bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-500/10"
-                : "bg-[#0d131f] border-slate-800 hover:border-emerald-500/30"
+                ? "bg-white border-[#198754] ring-2 ring-[#198754]/20 shadow-sm"
+                : "bg-white border-gray-200 hover:border-green-300 shadow-xs"
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-emerald-400 font-medium">
+            <div className="flex items-center justify-between text-xs text-[#198754] font-medium">
               <span>Em Aberto</span>
-              <AlertCircle className="w-4 h-4 text-emerald-400" />
+              <AlertCircle className="w-4 h-4 text-[#198754]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-[#198754] mt-2">
               {stats.aberto}
             </div>
           </div>
@@ -185,17 +193,17 @@ export function TicketsClientView({
           {/* Pendentes */}
           <div
             onClick={() => setStatusFilter(TicketStatus.PENDENTE)}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all ${
+            className={`cursor-pointer rounded-xl p-4 border transition-all ${
               statusFilter === TicketStatus.PENDENTE
-                ? "bg-amber-950/30 border-amber-500/50 shadow-md shadow-amber-500/10"
-                : "bg-[#0d131f] border-slate-800 hover:border-amber-500/30"
+                ? "bg-white border-[#ffc107] ring-2 ring-[#ffc107]/20 shadow-sm"
+                : "bg-white border-gray-200 hover:border-yellow-300 shadow-xs"
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-amber-400 font-medium">
+            <div className="flex items-center justify-between text-xs text-[#b58105] font-medium">
               <span>Pendentes</span>
-              <Clock className="w-4 h-4 text-amber-400" />
+              <Clock className="w-4 h-4 text-[#b58105]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-amber-400 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-[#b58105] mt-2">
               {stats.pendente}
             </div>
           </div>
@@ -203,32 +211,32 @@ export function TicketsClientView({
           {/* Fechados */}
           <div
             onClick={() => setStatusFilter(TicketStatus.FECHADO)}
-            className={`cursor-pointer rounded-2xl p-4 border transition-all ${
+            className={`cursor-pointer rounded-xl p-4 border transition-all ${
               statusFilter === TicketStatus.FECHADO
-                ? "bg-slate-800/90 border-slate-600 shadow-md"
-                : "bg-[#0d131f] border-slate-800 hover:border-slate-700"
+                ? "bg-white border-gray-500 ring-2 ring-gray-400/20 shadow-sm"
+                : "bg-white border-gray-200 hover:border-gray-300 shadow-xs"
             }`}
           >
-            <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+            <div className="flex items-center justify-between text-xs text-gray-500 font-medium">
               <span>Resolvidos / Fechados</span>
-              <CheckCircle2 className="w-4 h-4 text-slate-400" />
+              <CheckCircle2 className="w-4 h-4 text-gray-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-slate-300 mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-700 mt-2">
               {stats.fechado}
             </div>
           </div>
         </div>
 
         {/* Filter Bar & Search */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-6 bg-white p-3 rounded-xl border border-gray-200 shadow-xs">
           {/* Status Pills */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 w-full sm:w-auto overflow-x-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-lg bg-gray-100 border border-gray-200 overflow-x-auto">
             <button
               onClick={() => setStatusFilter("ALL")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                 statusFilter === "ALL"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-white text-[#0d6efd] shadow-xs font-semibold"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Todos ({stats.total})
@@ -236,10 +244,10 @@ export function TicketsClientView({
 
             <button
               onClick={() => setStatusFilter(TicketStatus.ABERTO)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                 statusFilter === TicketStatus.ABERTO
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#d1e7dd] text-[#0f5132] font-semibold"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Abertos ({stats.aberto})
@@ -247,10 +255,10 @@ export function TicketsClientView({
 
             <button
               onClick={() => setStatusFilter(TicketStatus.PENDENTE)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                 statusFilter === TicketStatus.PENDENTE
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#fff3cd] text-[#664d03] font-semibold"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Pendentes ({stats.pendente})
@@ -258,46 +266,67 @@ export function TicketsClientView({
 
             <button
               onClick={() => setStatusFilter(TicketStatus.FECHADO)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                 statusFilter === TicketStatus.FECHADO
-                  ? "bg-slate-700/60 text-slate-300 border border-slate-600"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[#e2e3e5] text-[#41464b] font-semibold"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Fechados ({stats.fechado})
             </button>
           </div>
 
-          {/* Search box */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              placeholder="Buscar chamado, tela, empresa..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-2.5">
+            {/* Client Filter Dropdown (visible for SUPORTE) */}
+            {isSupport && clients.length > 0 && (
+              <div className="w-full sm:w-60">
+                <select
+                  aria-label="Filtrar por Cliente"
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-gray-300 text-xs text-gray-900 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+                >
+                  <option value="ALL">Todos os Clientes</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.company}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Search box */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Buscar chamado, tela, empresa..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-white border border-gray-300 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+              />
+            </div>
           </div>
         </div>
 
         {/* Tickets List */}
         {filteredTickets.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-[#0d131f]/70 p-12 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 mb-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-12 text-center flex flex-col items-center justify-center shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 mb-4">
               <Inbox className="w-6 h-6" />
             </div>
-            <h2 className="text-base font-semibold text-white">Nenhum chamado encontrado</h2>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              {searchQuery
-                ? "Nenhum resultado corresponde à sua pesquisa de busca."
+            <h2 className="text-base font-semibold text-gray-900">Nenhum chamado encontrado</h2>
+            <p className="text-xs text-gray-500 mt-1 max-w-sm">
+              {searchQuery || clientFilter !== "ALL"
+                ? "Nenhum resultado corresponde aos filtros ou à sua pesquisa de busca."
                 : "Não há chamados nesta categoria no momento."}
             </p>
             <button
               onClick={() => setIsTicketModalOpen(true)}
-              className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-semibold transition-colors"
+              className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-semibold shadow-sm transition-colors"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
+              <PlusCircle className="w-3.5 h-3.5 text-white" />
               <span>Abrir Novo Chamado</span>
             </button>
           </div>
@@ -307,66 +336,66 @@ export function TicketsClientView({
               <Link
                 key={ticket.id}
                 href={`/suporte/chamados/${ticket.id}`}
-                className="group block rounded-2xl border border-slate-800/90 bg-[#0d131f] hover:bg-slate-900/90 hover:border-cyan-500/40 p-4 sm:p-5 transition-all shadow-sm hover:shadow-lg hover:shadow-cyan-500/5"
+                className="group block rounded-xl border border-gray-200 bg-white hover:border-[#0d6efd] hover:shadow-md p-4 sm:p-5 transition-all shadow-xs"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3.5">
                     {/* Ticket Number Badge */}
-                    <div className="shrink-0 font-mono text-xs font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1.5 rounded-xl">
+                    <div className="shrink-0 font-mono text-xs font-bold text-[#0d6efd] bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg">
                       #{ticket.ticketNumber}
                     </div>
 
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2.5 flex-wrap">
-                        <h2 className="text-sm sm:text-base font-semibold text-white group-hover:text-cyan-300 transition-colors">
+                        <h2 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-[#0d6efd] transition-colors">
                           {ticket.title}
                         </h2>
                         <StatusBadge status={ticket.status} size="sm" />
                         <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="sm" />
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
-                          <Layout className="w-3 h-3 text-cyan-400" />
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                          <Layout className="w-3 h-3 text-gray-500" />
                           Tela: {ticket.screenName}
                         </span>
                         {ticket.attachmentsCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
-                            <ImageIcon className="w-3 h-3 text-cyan-400" />
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                            <ImageIcon className="w-3 h-3 text-gray-500" />
                             {ticket.attachmentsCount}{" "}
                             {ticket.attachmentsCount === 1 ? "anexo" : "anexos"}
                           </span>
                         )}
                       </div>
 
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-1">
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">
                         {ticket.description}
                       </p>
 
                       {/* Metadata row */}
-                      <div className="flex items-center gap-4 text-[11px] text-slate-500 mt-2 flex-wrap">
+                      <div className="flex items-center gap-4 text-[11px] text-gray-500 mt-2 flex-wrap">
                         {isSupport && (
                           <>
-                            <span className="flex items-center gap-1 text-slate-400 font-medium">
-                              <Building className="w-3 h-3 text-slate-500" />
+                            <span className="flex items-center gap-1 text-gray-700 font-medium">
+                              <Building className="w-3 h-3 text-gray-400" />
                               {ticket.user.company}
                               {ticket.user.contractNumber && (
-                                <span className="text-slate-500">
+                                <span className="text-gray-400">
                                   ({ticket.user.contractNumber})
                                 </span>
                               )}
                             </span>
                             {ticket.user.systemUrl && (
-                              <span className="flex items-center gap-1 text-cyan-400">
-                                <Globe className="w-3 h-3 text-slate-500" />
+                              <span className="flex items-center gap-1 text-[#0d6efd]">
+                                <Globe className="w-3 h-3 text-gray-400" />
                                 {ticket.user.systemUrl.replace(/^https?:\/\//, "")}
                               </span>
                             )}
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3 text-slate-500" />
+                            <span className="flex items-center gap-1 text-gray-600">
+                              <User className="w-3 h-3 text-gray-400" />
                               {ticket.user.name}
                             </span>
                           </>
                         )}
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-slate-500" />
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Calendar className="w-3 h-3 text-gray-400" />
                           Aberto em {formatDate(ticket.createdAt)}
                         </span>
                       </div>
@@ -374,7 +403,7 @@ export function TicketsClientView({
                   </div>
 
                   <div className="flex items-center justify-end sm:self-center">
-                    <span className="text-xs font-medium text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                    <span className="text-xs font-semibold text-[#0d6efd] group-hover:translate-x-1 transition-transform flex items-center gap-1">
                       <span>Ver detalhes</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
@@ -391,6 +420,8 @@ export function TicketsClientView({
         isOpen={isTicketModalOpen}
         onClose={() => setIsTicketModalOpen(false)}
         onSuccess={handleTicketCreated}
+        userRole={user.role}
+        clients={clients}
       />
 
       {isSupport && (
@@ -398,6 +429,20 @@ export function TicketsClientView({
           isOpen={isUserModalOpen}
           onClose={() => setIsUserModalOpen(false)}
           onSuccess={handleUserCreated}
+        />
+      )}
+
+      {/* Ticket Success Confirmation Modal */}
+      {successModalInfo && (
+        <TicketSuccessModal
+          isOpen={!!successModalInfo}
+          ticketNumber={successModalInfo.ticketNumber}
+          ticketId={successModalInfo.id}
+          onClose={() => setSuccessModalInfo(null)}
+          onViewTicket={(id) => {
+            setSuccessModalInfo(null);
+            router.push(`/suporte/chamados/${id}`);
+          }}
         />
       )}
     </div>

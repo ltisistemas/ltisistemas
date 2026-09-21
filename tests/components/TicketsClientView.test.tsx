@@ -309,16 +309,83 @@ describe("components/suporte/TicketsClientView", () => {
     });
   });
 
-  it("should render empty state when no tickets match filter", () => {
+  it("should filter tickets by client dropdown when support selects a client", () => {
+    const mockClients = [
+      { id: "cli_1", name: "Carlos Cliente", company: "Alpha Corp", email: "carlos@alpha.com" },
+      { id: "cli_2", name: "Ana Cliente", company: "Beta Corp", email: "ana@beta.com" },
+    ];
+
     render(
       <TicketsClientView
         user={supportUser}
-        initialTickets={[]}
-        initialStats={{ total: 0, aberto: 0, pendente: 0, fechado: 0 }}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+        clients={mockClients}
       />
     );
 
-    expect(screen.getByText("Nenhum chamado encontrado")).toBeInTheDocument();
+    const clientSelect = screen.getByLabelText(/Filtrar por Cliente/i);
+    expect(clientSelect).toBeInTheDocument();
+
+    // Select Carlos Cliente (cli_1)
+    fireEvent.change(clientSelect, { target: { value: "cli_1" } });
+
+    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    expect(screen.queryByText("Dúvida sobre relatório")).toBeNull();
+    expect(screen.queryByText("Pendente aprovação")).toBeNull();
+
+    // Select "ALL"
+    fireEvent.change(clientSelect, { target: { value: "ALL" } });
+    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
+  });
+
+  it("should show TicketSuccessModal when a new ticket is created and allow copy", async () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    });
+
+    render(
+      <TicketsClientView
+        user={supportUser}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+      />
+    );
+
+    const newTicketBtn = screen.getByRole("button", { name: /Abrir Novo Chamado/i });
+    fireEvent.click(newTicketBtn);
+
+    fireEvent.change(screen.getByPlaceholderText(/Ex: Erro ao gerar relatório/i), {
+      target: { value: "Chamado com Modal" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ex: Tela de associados/i), {
+      target: { value: "Tela de Checkout" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu na tela/i), {
+      target: { value: "Detalhes do incidente." },
+    });
+
+    const ticketActions = await import("@/lib/actions/ticket-actions");
+    vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
+      success: true,
+      data: { id: "tkt_modal_1", ticketNumber: 777 } as any,
+    });
+
+    const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Chamado Aberto com Sucesso!")).toBeInTheDocument();
+      expect(screen.getByText("#777")).toBeInTheDocument();
+    });
+
+    const copyBtn = screen.getByText("Copiar Código");
+    fireEvent.click(copyBtn);
+    expect(writeTextMock).toHaveBeenCalledWith("#777");
   });
 });
 

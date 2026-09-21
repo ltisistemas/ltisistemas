@@ -1,23 +1,35 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
-import { X, Upload, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, Layout, Clock } from "lucide-react";
+import { X, Upload, Loader2, AlertCircle, Clock, UserCheck } from "lucide-react";
 import { createTicketAction, AttachmentInput } from "@/lib/actions/ticket-actions";
 import { compressImageToBase64 } from "@/lib/utils/image-compression";
+
+export interface ClientOption {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+}
 
 interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newTicketId: string, ticketNumber: number) => void;
+  userRole?: "SUPORTE" | "CLIENTE";
+  clients?: ClientOption[];
 }
 
 export function CreateTicketModal({
   isOpen,
   onClose,
   onSuccess,
+  userRole,
+  clients = [],
 }: CreateTicketModalProps) {
   const [title, setTitle] = useState("");
   const [screenName, setScreenName] = useState("");
+  const [targetUserId, setTargetUserId] = useState("");
   const [description, setDescription] = useState("");
   const [attachments, setAttachments] = useState<AttachmentInput[]>([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
@@ -27,6 +39,8 @@ export function CreateTicketModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const isSupport = userRole === "SUPORTE";
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -87,6 +101,7 @@ export function CreateTicketModal({
         title,
         screenName,
         description,
+        targetUserId: isSupport && targetUserId ? targetUserId : undefined,
         attachments,
       });
 
@@ -99,6 +114,7 @@ export function CreateTicketModal({
       // Reset fields
       setTitle("");
       setScreenName("");
+      setTargetUserId("");
       setDescription("");
       setAttachments([]);
       setIsSubmitting(false);
@@ -117,34 +133,35 @@ export function CreateTicketModal({
       role="dialog"
       aria-modal="true"
       aria-label="Abrir Novo Chamado"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl rounded-2xl border border-slate-800 bg-[#0d131f] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="relative w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">
+            <h2 className="text-lg font-bold text-gray-900 tracking-tight">
               Abrir Novo Chamado de Suporte
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Descreva o incidente ou solicitação técnica para nossa equipe.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            aria-label="Fechar formulário"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* SLA Info Banner */}
-        <div className="mt-4 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/25 flex items-center gap-2.5 text-xs text-cyan-300">
-          <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+        <div className="mt-4 p-3 rounded-xl bg-[#cff4fc] border border-[#b6effb] flex items-center gap-2.5 text-xs text-[#055160]">
+          <Clock className="w-4 h-4 text-[#0dcaf0] shrink-0" />
           <span>
             <strong>SLA de 6 horas para análise:</strong> Sua solicitação receberá atendimento e primeira avaliação técnica em até 6 horas úteis.
           </span>
@@ -152,18 +169,41 @@ export function CreateTicketModal({
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2.5 text-xs text-red-400">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mt-4 p-3 rounded-xl bg-[#f8d7da] border border-[#f5c2c7] flex items-start gap-2.5 text-xs text-[#842029]">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#dc3545]" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Client selector (visible for SUPORTE) */}
+          {isSupport && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Cliente Solicitante <span className="text-gray-400 font-normal">(opcional - vincular ao chamado)</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={targetUserId}
+                  onChange={(e) => setTargetUserId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+                >
+                  <option value="">Aberto em meu nome (Suporte)</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.company} ({c.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Título do Incidente <span className="text-cyan-400">*</span>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Título do Incidente <span className="text-[#dc3545]">*</span>
               </label>
               <input
                 type="text"
@@ -171,30 +211,28 @@ export function CreateTicketModal({
                 placeholder="Ex: Erro ao gerar relatório"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Nome da Tela / Módulo <span className="text-cyan-400">*</span>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nome da Tela / Módulo <span className="text-[#dc3545]">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Tela de associados / Produtos"
-                  value={screenName}
-                  onChange={(e) => setScreenName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Tela de associados / Produtos"
+                value={screenName}
+                onChange={(e) => setScreenName(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Descritivo Detalhado <span className="text-cyan-400">*</span>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Descritivo Detalhado <span className="text-[#dc3545]">*</span>
             </label>
             <textarea
               required
@@ -202,17 +240,17 @@ export function CreateTicketModal({
               placeholder="Explique o que aconteceu na tela, passos para reproduzir o erro e o comportamento esperado..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors resize-none"
             />
           </div>
 
           {/* Attachments Section */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-300">
+              <label className="text-xs font-semibold text-gray-700">
                 Evidências / Prints (Até 3 fotos)
               </label>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-gray-500">
                 {attachments.length}/3 imagens
               </span>
             </div>
@@ -223,7 +261,7 @@ export function CreateTicketModal({
                 {attachments.map((att, index) => (
                   <div
                     key={index}
-                    className="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-video flex items-center justify-center shadow-inner"
+                    className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-100 aspect-video flex items-center justify-center shadow-sm"
                   >
                     <img
                       src={att.base64Data}
@@ -233,12 +271,12 @@ export function CreateTicketModal({
                     <button
                       type="button"
                       onClick={() => handleRemoveAttachment(index)}
-                      className="absolute top-1 right-1 p-1 rounded-md bg-black/70 hover:bg-red-600 text-white transition-colors opacity-90 group-hover:opacity-100"
+                      className="absolute top-1 right-1 p-1 rounded-md bg-black/70 hover:bg-[#dc3545] text-white transition-colors opacity-90 group-hover:opacity-100"
                       title="Remover anexo"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
-                    <span className="absolute bottom-1 left-1 right-1 text-[10px] text-white/90 bg-black/60 px-1 py-0.5 rounded truncate">
+                    <span className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/70 px-1 py-0.5 rounded truncate">
                       {att.fileName}
                     </span>
                   </div>
@@ -261,22 +299,22 @@ export function CreateTicketModal({
                 />
                 <label
                   htmlFor="ticket-photo-upload"
-                  className="w-full border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-slate-900/40 hover:bg-slate-900/80 transition-all text-center group"
+                  className="w-full border-2 border-dashed border-gray-300 hover:border-[#0d6efd] rounded-xl p-3 flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-gray-50 hover:bg-gray-100/80 transition-all text-center group"
                 >
                   {isProcessingImages ? (
-                    <div className="flex items-center gap-2 text-cyan-400 text-xs py-1">
+                    <div className="flex items-center gap-2 text-[#0d6efd] text-xs py-1">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Comprimindo imagem...</span>
                     </div>
                   ) : (
                     <>
-                      <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400 group-hover:text-cyan-400 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-gray-200 text-gray-600 group-hover:text-[#0d6efd] group-hover:bg-blue-50 transition-colors">
                         <Upload className="w-4 h-4" />
                       </div>
-                      <span className="text-xs text-slate-300 font-medium group-hover:text-white">
+                      <span className="text-xs text-gray-700 font-medium group-hover:text-gray-900">
                         Clique para anexar print ou arraste uma imagem
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-[10px] text-gray-500">
                         PNG, JPG ou WebP (otimização automática)
                       </span>
                     </>
@@ -287,12 +325,12 @@ export function CreateTicketModal({
           </div>
 
           {/* Actions */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
+          <div className="pt-3 border-t border-gray-200 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 transition-colors"
             >
               Cancelar
             </button>
@@ -300,11 +338,11 @@ export function CreateTicketModal({
             <button
               type="submit"
               disabled={isSubmitting || isProcessingImages}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-semibold shadow-md shadow-cyan-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-5 py-2 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-sm font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
                   <span>Enviando Chamado...</span>
                 </>
               ) : (
