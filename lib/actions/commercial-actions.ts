@@ -484,54 +484,265 @@ export async function deleteReceivableAction(
 }
 
 /**
+ * Utilitários para iteração e cálculo de competências
+ */
+function getCompetenceString(year: number, monthIndex: number): string {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+}
+
+function parseCompetence(comp: string): { year: number; month: number } {
+  const [y, m] = comp.split("-").map(Number);
+  return { year: y, month: m };
+}
+
+function getYearMonth(date: Date | string): { year: number; month: number } {
+  if (typeof date === "string") {
+    const parts = date.split("T")[0].split("-");
+    if (parts.length >= 2) {
+      return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) };
+    }
+  }
+  const iso = (date instanceof Date ? date : new Date(date)).toISOString();
+  const [y, m] = iso.split("T")[0].split("-").map(Number);
+  return { year: y, month: m };
+}
+
+function getCompetencesBetween(startDate: Date | string, endDate: Date | string): string[] {
+  const start = getYearMonth(startDate);
+  const end = getYearMonth(endDate);
+
+  const competences: string[] = [];
+  let curYear = start.year;
+  let curMonth = start.month;
+
+  while (
+    curYear < end.year ||
+    (curYear === end.year && curMonth <= end.month)
+  ) {
+    competences.push(`${curYear}-${String(curMonth).padStart(2, "0")}`);
+    curMonth++;
+    if (curMonth > 12) {
+      curMonth = 1;
+      curYear++;
+    }
+  }
+
+  return competences;
+}
+
+/**
  * Gera fatura/recebível mensal a partir de um contrato ativo.
+ * Caso a competência não seja informada, calcula inteligentemente a próxima competência
+ * pendente (se a do mês vigente já existir ou estiver paga, gera a do próximo mês).
  */
 export async function generateMonthlyReceivableFromContractAction(params: {
   contractId: string;
-  competence: string; // Ex: "2026-10"
-}): Promise<ActionResult<{ id: string }>> {
+  competence?: string; // Ex: "2026-10" ou omitido para próximo mês disponível
+}): Promise<ActionResult<{ id: string; competence: string; amount: number }>> {
   try {
     await ensureSupportSession();
 
     const contract = await prisma.clientContract.findUnique({
       where: { id: params.contractId },
+      include: {
+        receivables: {
+          select: { competence: true, status: true },
+        },
+      },
     });
 
     if (!contract) {
       return { success: false, error: "Contrato não encontrado." };
     }
 
-    // Calcula a data de vencimento da competência informada
-    const [yearStr, monthStr] = params.competence.split("-");
-    const year = Number(yearStr);
-    const month = Number(monthStr);
+    let targetCompetence = params.competence?.trim();
 
+    if (!targetCompetence) {
+      const now = new Date();
+      const currentMonthComp = getCompetenceString(now.getFullYear(), now.getMonth());
+
+      const existingMap = new Map<string, ReceivableStatus>();
+      contract.receivables.forEach((r) => existingMap.set(r.competence, r.status));
+
+      // Se o mês vigente ainda não foi gerado, gera para o mês vigente
+      if (!existingMap.has(currentMonthComp)) {
+        targetCompetence = currentMonthComp;
+      } else {
+        // Se o mês vigente já foi gerado (pago ou pendente), busca o próximo mês que ainda não tem fatura
+        const iterDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        let found = false;
+
+        // Procura nos próximos 24 meses
+        for (let i = 0; i < 24; i++) {
+          const checkComp = getCompetenceString(iterDate.getFullYear(), iterDate.getMonth());
+          if (!existingMap.has(checkComp)) {
+            targetCompetence = checkComp;
+            found = true;
+            break;
+          }
+          iterDate.setMonth(iterDate.getMonth() + 1);
+        }
+
+        if (!found) {
+          return { success: false, error: "Todas as faturas futuras para este contrato já foram geradas." };
+        }
+      }
+    }
+
+    if (!targetCompetence) {
+      return { success: false, error: "Não foi possível determinar a competência da fatura." };
+    }
+
+    const { year, month } = parseCompetence(targetCompetence);
     if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
       return { success: false, error: "Competência no formato inválido. Utilize AAAA-MM (ex: 2026-10)." };
     }
 
-    const dueDate = new Date(year, month - 1, contract.billingDay, 12, 0, 0);
+    // Verifica se já existe fatura para essa competência específica neste contrato
+    const existing = await prisma.clientReceivable.findFirst({
+      where: {
+        contractId: contract.id,
+        competence: targetCompetence,
+      },
+    });
 
-    const description = `Mensalidade de Sustentação — ${contract.title} (${params.competence})`;
+    if (existing) {
+      return {
+        success: false,
+        error: `A fatura para a competência ${targetCompetence} já existe neste contrato.`,
+      };
+    }
+
+    const lastDayOfMonth = new Date(year, month, 0).getDate();
+    const effectiveDay = Math.min(contract.billingDay, lastDayOfMonth);
+    const dueDate = new Date(year, month - 1, effectiveDay, 12, 0, 0);
+    const description = `Mensalidade de Sustentação — ${contract.title} (${targetCompetence})`;
 
     const receivable = await prisma.clientReceivable.create({
       data: {
         userId: contract.userId,
         contractId: contract.id,
         description,
-        competence: params.competence,
+        competence: targetCompetence,
         amount: contract.monthlyValue,
         dueDate,
         paymentMethod: "PIX",
         status: "PENDENTE",
       },
-      select: { id: true },
+      select: { id: true, competence: true, amount: true },
     });
 
-    return { success: true, data: { id: receivable.id } };
+    return { success: true, data: receivable };
   } catch (error: any) {
     console.error("generateMonthlyReceivableFromContractAction error:", error);
     return { success: false, error: error.message || "Falha ao gerar mensalidade do contrato." };
+  }
+}
+
+/**
+ * Gera todas as faturas pendentes de um contrato (do início ao término do contrato).
+ * Exemplo: contrato de set/2026 a set/2027 com 2 faturas já geradas -> gera as faturas restantes.
+ */
+export async function generateAllMissingReceivablesForContractAction(params: {
+  contractId: string;
+}): Promise<
+  ActionResult<{
+    count: number;
+    generatedCompetences: string[];
+    contractTitle: string;
+  }>
+> {
+  try {
+    await ensureSupportSession();
+
+    const contract = await prisma.clientContract.findUnique({
+      where: { id: params.contractId },
+      include: {
+        receivables: {
+          select: { competence: true },
+        },
+      },
+    });
+
+    if (!contract) {
+      return { success: false, error: "Contrato não encontrado." };
+    }
+
+    const startYM = getYearMonth(contract.startDate);
+    let endYM: { year: number; month: number };
+
+    if (contract.endDate) {
+      endYM = getYearMonth(contract.endDate);
+    } else {
+      // Padrão de 12 meses (do mês de início até 11 meses adiante)
+      let endMonth = startYM.month + 11;
+      let endYear = startYM.year;
+      if (endMonth > 12) {
+        endYear += Math.floor((endMonth - 1) / 12);
+        endMonth = ((endMonth - 1) % 12) + 1;
+      }
+      endYM = { year: endYear, month: endMonth };
+    }
+
+    const allCompetences = getCompetencesBetween(
+      `${startYM.year}-${String(startYM.month).padStart(2, "0")}-01`,
+      `${endYM.year}-${String(endYM.month).padStart(2, "0")}-01`
+    );
+    const existingCompetences = new Set(contract.receivables.map((r) => r.competence));
+
+    const missingCompetences = allCompetences.filter((c) => !existingCompetences.has(c));
+
+    if (missingCompetences.length === 0) {
+      return {
+        success: true,
+        data: {
+          count: 0,
+          generatedCompetences: [],
+          contractTitle: contract.title,
+        },
+      };
+    }
+
+    // Cria em lote todas as faturas faltantes
+    const createdList: string[] = [];
+
+    for (const comp of missingCompetences) {
+      const { year, month } = parseCompetence(comp);
+      const lastDayOfMonth = new Date(year, month, 0).getDate();
+      const effectiveDay = Math.min(contract.billingDay, lastDayOfMonth);
+      const dueDate = new Date(year, month - 1, effectiveDay, 12, 0, 0);
+      const description = `Mensalidade de Sustentação — ${contract.title} (${comp})`;
+
+      await prisma.clientReceivable.create({
+        data: {
+          userId: contract.userId,
+          contractId: contract.id,
+          description,
+          competence: comp,
+          amount: contract.monthlyValue,
+          dueDate,
+          paymentMethod: "PIX",
+          status: "PENDENTE",
+        },
+      });
+
+      createdList.push(comp);
+    }
+
+    return {
+      success: true,
+      data: {
+        count: createdList.length,
+        generatedCompetences: createdList,
+        contractTitle: contract.title,
+      },
+    };
+  } catch (error: any) {
+    console.error("generateAllMissingReceivablesForContractAction error:", error);
+    return {
+      success: false,
+      error: error.message || "Falha ao gerar faturas pendentes do contrato.",
+    };
   }
 }
 

@@ -9,6 +9,7 @@ import {
   updateReceivableStatusAction,
   deleteReceivableAction,
   generateMonthlyReceivableFromContractAction,
+  generateAllMissingReceivablesForContractAction,
   createProposalAction,
   updateProposalStatusAction,
   deleteProposalAction,
@@ -249,6 +250,126 @@ describe("lib/actions/commercial-actions", () => {
           }),
         })
       );
+    });
+
+    it("should generate a monthly receivable with smart auto-detection of next month when current month exists/is paid", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue(supportSession);
+
+      const now = new Date();
+      const currentMonthComp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const nextDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const expectedNextComp = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+
+      // Contract has the current month already generated as PAGO
+      vi.spyOn(prisma.clientContract, "findUnique").mockResolvedValue({
+        id: "cont_1",
+        userId: "cli_aposchesf",
+        title: "Sustentação Aposchesf",
+        monthlyValue: 480,
+        billingDay: 15,
+        receivables: [
+          { competence: currentMonthComp, status: ReceivableStatus.PAGO },
+        ],
+      } as any);
+
+      vi.spyOn(prisma.clientReceivable, "findFirst").mockResolvedValue(null);
+
+      const createRecSpy = vi.spyOn(prisma.clientReceivable, "create").mockResolvedValue({
+        id: "rec_next_789",
+        competence: expectedNextComp,
+        amount: 480,
+      } as any);
+
+      // Omit competence to trigger smart detection
+      const res = await generateMonthlyReceivableFromContractAction({
+        contractId: "cont_1",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.competence).toBe(expectedNextComp);
+      expect(createRecSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: "cli_aposchesf",
+            contractId: "cont_1",
+            amount: 480,
+            competence: expectedNextComp,
+            status: "PENDENTE",
+          }),
+        })
+      );
+    });
+
+    it("should generate all missing receivables for a contract respecting due dates", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue(supportSession);
+
+      // Contract from 2026-09-01 to 2027-08-31 (12 months), with 2 already generated (2026-09, 2026-10)
+      vi.spyOn(prisma.clientContract, "findUnique").mockResolvedValue({
+        id: "cont_1",
+        userId: "cli_aposchesf",
+        title: "Sustentação Aposchesf Anual",
+        monthlyValue: 480,
+        billingDay: 10,
+        startDate: new Date("2026-09-01"),
+        endDate: new Date("2027-08-31"),
+        receivables: [
+          { competence: "2026-09" },
+          { competence: "2026-10" },
+        ],
+      } as any);
+
+      const createRecSpy = vi.spyOn(prisma.clientReceivable, "create").mockResolvedValue({
+        id: "rec_batch_1",
+      } as any);
+
+      const res = await generateAllMissingReceivablesForContractAction({
+        contractId: "cont_1",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.count).toBe(10); // 12 - 2 = 10 missing
+      expect(res.data?.generatedCompetences).toEqual([
+        "2026-11",
+        "2026-12",
+        "2027-01",
+        "2027-02",
+        "2027-03",
+        "2027-04",
+        "2027-05",
+        "2027-06",
+        "2027-07",
+        "2027-08",
+      ]);
+      expect(createRecSpy).toHaveBeenCalledTimes(10);
+    });
+
+    it("should return count 0 when all contract invoices are already generated", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue(supportSession);
+
+      vi.spyOn(prisma.clientContract, "findUnique").mockResolvedValue({
+        id: "cont_1",
+        userId: "cli_aposchesf",
+        title: "Sustentação Aposchesf",
+        monthlyValue: 480,
+        billingDay: 10,
+        startDate: new Date("2026-09-01"),
+        endDate: new Date("2026-10-31"),
+        receivables: [
+          { competence: "2026-09" },
+          { competence: "2026-10" },
+        ],
+      } as any);
+
+      const createRecSpy = vi.spyOn(prisma.clientReceivable, "create");
+
+      const res = await generateAllMissingReceivablesForContractAction({
+        contractId: "cont_1",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.count).toBe(0);
+      expect(res.data?.generatedCompetences).toEqual([]);
+      expect(createRecSpy).not.toHaveBeenCalled();
     });
 
     it("should update receivable status to PAGO and register paidDate", async () => {

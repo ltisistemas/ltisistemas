@@ -21,6 +21,10 @@ import {
   Building,
   Mail,
   Zap,
+  Layers,
+  Sparkles,
+  Info,
+  Check,
 } from "lucide-react";
 import {
   ClientCommercialOverviewData,
@@ -31,6 +35,7 @@ import {
   deleteProposalAction,
   updateProposalStatusAction,
   generateMonthlyReceivableFromContractAction,
+  generateAllMissingReceivablesForContractAction,
 } from "@/lib/actions/commercial-actions";
 import { ContractStatus, ReceivableStatus, ProposalStatus } from "@prisma/client";
 import { CreateContractModal } from "./CreateContractModal";
@@ -67,10 +72,12 @@ export function ClientCommercialModal({
   const [isReceivableModalOpen, setIsReceivableModalOpen] = useState(false);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
 
-  // Geração rápida de competência
-  const now = new Date();
-  const currentCompetence = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [generatingCompetence, setGeneratingCompetence] = useState(false);
+  // Notificações e feedback
+  const [notification, setNotification] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+  const [generatingContractId, setGeneratingContractId] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!clientId) return;
@@ -89,9 +96,11 @@ export function ClientCommercialModal({
 
   useEffect(() => {
     if (isOpen && clientId) {
+      setNotification(null);
       loadData();
     } else {
       setData(null);
+      setNotification(null);
     }
   }, [isOpen, clientId]);
 
@@ -143,21 +152,86 @@ export function ClientCommercialModal({
     });
   };
 
-  const handleGenerateMonthlyInvoice = async (contractId: string) => {
-    setGeneratingCompetence(true);
+  // Gerar próxima fatura avulsa com cálculo inteligente (mês vigente ou próximo mês não gerado)
+  const handleGenerateNextInvoice = async (contractId: string) => {
+    setGeneratingContractId(contractId);
+    setNotification(null);
     try {
       const res = await generateMonthlyReceivableFromContractAction({
         contractId,
-        competence: currentCompetence,
       });
       if (!res.success) {
-        alert(res.error || "Falha ao gerar cobrança.");
+        setNotification({
+          type: "error",
+          message: res.error || "Falha ao gerar cobrança.",
+        });
       } else {
-        loadData();
-        setActiveTab("recebiveis");
+        setNotification({
+          type: "success",
+          message: `Fatura da competência ${res.data?.competence} (${formatCurrency(res.data?.amount || 0)}) gerada com sucesso!`,
+        });
+        await loadData();
       }
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.message || "Erro inesperado ao gerar fatura.",
+      });
     } finally {
-      setGeneratingCompetence(false);
+      setGeneratingContractId(null);
+    }
+  };
+
+  // Gerar todas as faturas faltantes/pendentes de um contrato até o final da vigência
+  const handleGenerateAllMissingInvoices = async (
+    contractId: string,
+    contractTitle: string
+  ) => {
+    if (
+      !confirm(
+        `Deseja gerar automaticamente todas as faturas pendentes do contrato "${contractTitle}" até o término da vigência?`
+      )
+    ) {
+      return;
+    }
+
+    setGeneratingContractId(contractId);
+    setNotification(null);
+    try {
+      const res = await generateAllMissingReceivablesForContractAction({
+        contractId,
+      });
+      if (!res.success) {
+        setNotification({
+          type: "error",
+          message: res.error || "Falha ao gerar faturas pendentes.",
+        });
+      } else {
+        if (res.data && res.data.count > 0) {
+          const comps = res.data.generatedCompetences;
+          const compRange =
+            comps.length === 1
+              ? comps[0]
+              : `${comps[0]} até ${comps[comps.length - 1]}`;
+          setNotification({
+            type: "success",
+            message: `${res.data.count} faturas pendentes geradas com sucesso para "${res.data.contractTitle}" (${compRange})!`,
+          });
+        } else {
+          setNotification({
+            type: "info",
+            message: `Todas as faturas do contrato "${contractTitle}" já estão geradas! Nenhuma fatura faltante.`,
+          });
+        }
+        await loadData();
+      }
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err.message || "Erro ao processar faturas pendentes.",
+      });
+    } finally {
+      setGeneratingContractId(null);
     }
   };
 
@@ -209,8 +283,39 @@ export function ClientCommercialModal({
             </button>
           </div>
 
-          {/* Body */}
+            {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {notification && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs font-medium flex items-center justify-between gap-3 animate-fadeIn ${
+                  notification.type === "success"
+                    ? "bg-green-50 border-green-200 text-[#198754]"
+                    : notification.type === "error"
+                    ? "bg-red-50 border-red-200 text-[#dc3545]"
+                    : "bg-blue-50 border-blue-200 text-[#0d6efd]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {notification.type === "success" && (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#198754]" />
+                  )}
+                  {notification.type === "error" && (
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-[#dc3545]" />
+                  )}
+                  {notification.type === "info" && (
+                    <Info className="w-4 h-4 shrink-0 text-[#0d6efd]" />
+                  )}
+                  <span>{notification.message}</span>
+                </div>
+                <button
+                  onClick={() => setNotification(null)}
+                  className="p-1 hover:bg-black/5 rounded text-current opacity-70 hover:opacity-100"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {loading ? (
               <div className="py-16 flex flex-col items-center justify-center text-gray-400">
                 <Loader2 className="w-8 h-8 animate-spin text-[#0d6efd] mb-2" />
@@ -342,13 +447,31 @@ export function ClientCommercialModal({
                     )}
 
                     {activeTab === "recebiveis" && (
-                      <button
-                        onClick={() => setIsReceivableModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-semibold shadow-sm transition-all"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" />
-                        <span>Nova Fatura / Recebível</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {data.contracts.some((c) => c.status === "ATIVO") && (
+                          <button
+                            onClick={() => {
+                              const activeCont = data.contracts.find((c) => c.status === "ATIVO");
+                              if (activeCont) {
+                                handleGenerateAllMissingInvoices(activeCont.id, activeCont.title);
+                              }
+                            }}
+                            disabled={generatingContractId !== null}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold shadow-2xs transition-all disabled:opacity-50"
+                            title="Gerar faturas pendentes do contrato ativo"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>Gerar Pendentes do Contrato</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setIsReceivableModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-semibold shadow-sm transition-all"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          <span>Nova Fatura / Recebível</span>
+                        </button>
+                      </div>
                     )}
 
                     {activeTab === "propostas" && (
@@ -396,7 +519,7 @@ export function ClientCommercialModal({
                               <th className="py-2.5 px-3">Dia Venc.</th>
                               <th className="py-2.5 px-3">Início / Término</th>
                               <th className="py-2.5 px-3">Status</th>
-                              <th className="py-2.5 px-3 text-right">Ações</th>
+                              <th className="py-2.5 px-3 text-right">Ações & Faturas</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 bg-white">
@@ -435,15 +558,37 @@ export function ClientCommercialModal({
                                 <td className="py-2.5 px-3 text-right">
                                   <div className="flex items-center justify-end gap-1.5">
                                     {c.status === "ATIVO" && (
-                                      <button
-                                        onClick={() => handleGenerateMonthlyInvoice(c.id)}
-                                        disabled={generatingCompetence}
-                                        title={`Gerar mensalidade da competência ${currentCompetence}`}
-                                        className="p-1.5 rounded-lg bg-green-50 text-[#198754] hover:bg-green-100 border border-green-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
-                                      >
-                                        <Zap className="w-3 h-3" />
-                                        <span>Gerar Fatura</span>
-                                      </button>
+                                      <>
+                                        <button
+                                          onClick={() => handleGenerateNextInvoice(c.id)}
+                                          disabled={generatingContractId === c.id}
+                                          title="Gerar próxima fatura (mês vigente ou próximo mês não faturado)"
+                                          className="px-2.5 py-1 rounded-lg bg-blue-50 text-[#0d6efd] hover:bg-blue-100 border border-blue-200 text-[11px] font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                                        >
+                                          {generatingContractId === c.id ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <Zap className="w-3 h-3" />
+                                          )}
+                                          <span>Gerar Próxima</span>
+                                        </button>
+
+                                        <button
+                                          onClick={() =>
+                                            handleGenerateAllMissingInvoices(c.id, c.title)
+                                          }
+                                          disabled={generatingContractId === c.id}
+                                          title="Gerar todas as faturas faltantes até o final do contrato"
+                                          className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-[11px] font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                                        >
+                                          {generatingContractId === c.id ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <Layers className="w-3 h-3" />
+                                          )}
+                                          <span>Gerar Pendentes</span>
+                                        </button>
+                                      </>
                                     )}
 
                                     <button
@@ -487,6 +632,23 @@ export function ClientCommercialModal({
                         <p className="text-[11px] text-gray-500 mt-1">
                           Gere mensalidades a partir dos contratos ou crie cobranças pontuais.
                         </p>
+                        {data.contracts.some((c) => c.status === "ATIVO") && (
+                          <div className="mt-3 flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                const activeCont = data.contracts.find((c) => c.status === "ATIVO");
+                                if (activeCont) {
+                                  handleGenerateAllMissingInvoices(activeCont.id, activeCont.title);
+                                }
+                              }}
+                              disabled={generatingContractId !== null}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                              <span>Gerar Faturas Faltantes do Contrato</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="overflow-x-auto border border-gray-200 rounded-xl">
