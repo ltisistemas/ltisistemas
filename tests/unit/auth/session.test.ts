@@ -17,6 +17,8 @@ describe("lib/auth/session", () => {
     email: "suporte@ltisistemas.com",
     company: "LTI Sistemas",
     contractNumber: "CTR-01",
+    systemUrl: "https://app.ltisistemas.com",
+    status: "ATIVO",
     role: Role.SUPORTE,
   };
 
@@ -32,6 +34,8 @@ describe("lib/auth/session", () => {
     expect(decoded?.role).toBe(Role.SUPORTE);
     expect(decoded?.company).toBe("LTI Sistemas");
     expect(decoded?.contractNumber).toBe("CTR-01");
+    expect(decoded?.systemUrl).toBe("https://app.ltisistemas.com");
+    expect(decoded?.status).toBe("ATIVO");
   });
 
   it("should return null when verifying invalid or tampered token", async () => {

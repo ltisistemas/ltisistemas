@@ -16,7 +16,9 @@ export interface TicketSummary {
   ticketNumber: number;
   title: string;
   description: string;
+  screenName: string;
   status: TicketStatus;
+  slaDueAt: Date;
   createdAt: Date;
   updatedAt: Date;
   attachmentsCount: number;
@@ -25,6 +27,7 @@ export interface TicketSummary {
     name: string;
     company: string;
     contractNumber: string | null;
+    systemUrl: string | null;
     email: string;
   };
 }
@@ -47,22 +50,24 @@ export interface TicketStats {
 }
 
 /**
- * Creates a new support incident ticket with optional screenshot attachments.
+ * Creates a new support incident ticket with screen name and 6-hour SLA.
  */
 export async function createTicketAction(data: {
   title: string;
   description: string;
+  screenName: string;
   attachments?: AttachmentInput[];
-}): Promise<ActionResult<{ id: string; ticketNumber: number }>> {
+}): Promise<ActionResult<{ id: string; ticketNumber: number; slaDueAt: Date }>> {
   try {
     const session = await requireSession();
 
     const title = data.title?.trim();
     const description = data.description?.trim();
+    const screenName = data.screenName?.trim();
     const rawAttachments = data.attachments || [];
 
-    if (!title || !description) {
-      return { success: false, error: "Título e descrição do problema são obrigatórios." };
+    if (!title || !description || !screenName) {
+      return { success: false, error: "Título, nome da tela e descrição do problema são obrigatórios." };
     }
 
     if (rawAttachments.length > 3) {
@@ -80,11 +85,16 @@ export async function createTicketAction(data: {
       }
     }
 
+    // 6-hour SLA for initial analysis
+    const slaDueAt = new Date(Date.now() + 6 * 60 * 60 * 1000);
+
     const ticket = await prisma.ticket.create({
       data: {
         title,
         description,
+        screenName,
         status: TicketStatus.ABERTO,
+        slaDueAt,
         userId: session.userId,
         attachments: rawAttachments.length > 0
           ? {
@@ -99,6 +109,7 @@ export async function createTicketAction(data: {
       select: {
         id: true,
         ticketNumber: true,
+        slaDueAt: true,
       },
     });
 
@@ -107,6 +118,7 @@ export async function createTicketAction(data: {
       data: {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
+        slaDueAt: ticket.slaDueAt,
       },
     };
   } catch (error: any) {
@@ -119,9 +131,9 @@ export async function createTicketAction(data: {
 }
 
 /**
- * Retrieves tickets with role-based isolation:
- * - CLIENTE sees only their own tickets
- * - SUPORTE sees all tickets across all clients
+ * Retrieves tickets with role-based isolation and soft-delete filtering:
+ * - CLIENTE sees only their own active tickets
+ * - SUPORTE sees all active tickets across all clients
  */
 export async function getTicketsAction(
   filterStatus?: TicketStatus | "ALL"
@@ -132,8 +144,11 @@ export async function getTicketsAction(
     const isSupport = session.role === "SUPORTE";
     const statusCondition = filterStatus && filterStatus !== "ALL" ? { status: filterStatus } : {};
 
-    // Filter by client userId if not support
-    const baseFilter = isSupport ? {} : { userId: session.userId };
+    // Filter out soft-deleted tickets and by client userId if not support
+    const baseFilter = {
+      deletedAt: null,
+      ...(isSupport ? {} : { userId: session.userId }),
+    };
     const queryFilter = { ...baseFilter, ...statusCondition };
 
     // Fetch tickets and count stats in parallel
@@ -148,6 +163,7 @@ export async function getTicketsAction(
               name: true,
               company: true,
               contractNumber: true,
+              systemUrl: true,
               email: true,
             },
           },
@@ -167,7 +183,9 @@ export async function getTicketsAction(
       ticketNumber: t.ticketNumber,
       title: t.title,
       description: t.description,
+      screenName: t.screenName,
       status: t.status,
+      slaDueAt: t.slaDueAt,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
       attachmentsCount: t._count.attachments,
@@ -198,8 +216,8 @@ export async function getTicketsAction(
 }
 
 /**
- * Retrieves a single ticket with full details and attached screenshots.
- * Strictly verifies that clients cannot view other clients' tickets.
+ * Retrieves a single ticket with full details, screen name, SLA and attached screenshots.
+ * Strictly verifies that clients cannot view other clients' tickets and ignores soft-deleted tickets.
  */
 export async function getTicketByIdAction(ticketId: string): Promise<ActionResult<TicketDetail>> {
   try {
@@ -214,6 +232,7 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
             name: true,
             company: true,
             contractNumber: true,
+            systemUrl: true,
             email: true,
           },
         },
@@ -229,8 +248,8 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
       },
     });
 
-    if (!ticket) {
-      return { success: false, error: "Chamado não encontrado." };
+    if (!ticket || ticket.deletedAt) {
+      return { success: false, error: "Chamado não encontrado ou excluído." };
     }
 
     // Role-based privacy isolation
@@ -245,7 +264,9 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
         ticketNumber: ticket.ticketNumber,
         title: ticket.title,
         description: ticket.description,
+        screenName: ticket.screenName,
         status: ticket.status,
+        slaDueAt: ticket.slaDueAt,
         createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt,
         attachmentsCount: ticket.attachments.length,
@@ -295,5 +316,40 @@ export async function updateTicketStatusAction(
       return { success: false, error: "Apenas a equipe de SUPORTE pode alterar o status de um chamado." };
     }
     return { success: false, error: "Erro ao atualizar status do chamado." };
+  }
+}
+
+/**
+ * Performs soft-delete on a ticket (allowed for ticket owner or SUPORTE).
+ */
+export async function deleteTicketAction(ticketId: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, userId: true, deletedAt: true },
+    });
+
+    if (!ticket || ticket.deletedAt) {
+      return { success: false, error: "Chamado não encontrado." };
+    }
+
+    if (session.role === "CLIENTE" && ticket.userId !== session.userId) {
+      return { success: false, error: "Você não tem permissão para excluir este chamado." };
+    }
+
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { deletedAt: new Date() },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete ticket error:", error);
+    if (error.message === "UNAUTHORIZED") {
+      return { success: false, error: "Sua sessão expirou." };
+    }
+    return { success: false, error: "Erro ao excluir chamado." };
   }
 }

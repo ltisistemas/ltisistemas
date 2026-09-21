@@ -23,8 +23,10 @@ describe("components/suporte/TicketDetailClientView", () => {
     id: "tkt_100",
     ticketNumber: 55,
     title: "Erro crítico no banco de dados",
+    screenName: "Módulo de Relatórios",
     description: "Falha de conexão intermitente ao consultar tabelas",
     status: TicketStatus.ABERTO,
+    slaDueAt: new Date(Date.now() + 5 * 3600 * 1000),
     createdAt: new Date(),
     updatedAt: new Date(),
     attachmentsCount: 1,
@@ -33,6 +35,7 @@ describe("components/suporte/TicketDetailClientView", () => {
       name: "João Silva",
       company: "Empresa Parceira",
       contractNumber: "CTR-2026",
+      systemUrl: "https://parceira.com.br",
       email: "joao@parceira.com",
     },
     attachments: [
@@ -46,7 +49,7 @@ describe("components/suporte/TicketDetailClientView", () => {
     ],
   };
 
-  it("should render ticket details, user info and description", () => {
+  it("should render ticket details, screen name, user info and description", () => {
     render(
       <TicketDetailClientView
         user={supportUser}
@@ -55,11 +58,34 @@ describe("components/suporte/TicketDetailClientView", () => {
     );
 
     expect(screen.getByText("Chamado #55")).toBeInTheDocument();
+    expect(screen.getByText("Tela: Módulo de Relatórios")).toBeInTheDocument();
     expect(screen.getByText("Erro crítico no banco de dados")).toBeInTheDocument();
     expect(screen.getByText("João Silva")).toBeInTheDocument();
     expect(screen.getByText("Empresa Parceira (CTR-2026)")).toBeInTheDocument();
+    expect(screen.getByText("parceira.com.br")).toBeInTheDocument();
     expect(screen.getByText("Falha de conexão intermitente ao consultar tabelas")).toBeInTheDocument();
     expect(screen.getByText("screenshot_erro.png")).toBeInTheDocument();
+  });
+
+  it("should allow user to soft-delete ticket", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.spyOn(ticketActions, "deleteTicketAction").mockResolvedValue({
+      success: true,
+    });
+
+    render(
+      <TicketDetailClientView
+        user={supportUser}
+        initialTicket={sampleTicket}
+      />
+    );
+
+    const deleteBtn = screen.getByRole("button", { name: /Excluir Chamado/i });
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(ticketActions.deleteTicketAction).toHaveBeenCalledWith("tkt_100");
+    });
   });
 
   it("should allow support user to trigger status update", async () => {

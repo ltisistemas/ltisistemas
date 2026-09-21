@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { Role } from "@prisma/client";
+import { Role, UserStatus } from "@prisma/client";
 
 export interface SessionPayload {
   userId: string;
@@ -8,6 +8,8 @@ export interface SessionPayload {
   email: string;
   company: string;
   contractNumber?: string | null;
+  systemUrl?: string | null;
+  status?: UserStatus;
   role: Role;
 }
 
@@ -43,6 +45,8 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       email: payload.email as string,
       company: payload.company as string,
       contractNumber: payload.contractNumber as string | null | undefined,
+      systemUrl: payload.systemUrl as string | null | undefined,
+      status: (payload.status as UserStatus) || "ATIVO",
       role: payload.role as Role,
     };
   } catch (error) {

@@ -20,7 +20,9 @@ describe("components/suporte/CreateTicketModal", () => {
     render(<CreateTicketModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     expect(screen.getByText("Abrir Novo Chamado de Suporte")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Erro 500/i)).toBeInTheDocument();
+    expect(screen.getByText(/SLA de 6 horas para análise/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Erro ao gerar relatório/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Tela de associados/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Explique o que aconteceu/i)).toBeInTheDocument();
   });
 
@@ -40,7 +42,7 @@ describe("components/suporte/CreateTicketModal", () => {
 
     vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_123", ticketNumber: 77 },
+      data: { id: "tkt_123", ticketNumber: 77, slaDueAt: new Date() },
     });
 
     render(
@@ -51,10 +53,12 @@ describe("components/suporte/CreateTicketModal", () => {
       />
     );
 
-    const titleInput = screen.getByPlaceholderText(/Erro 500/i);
+    const titleInput = screen.getByPlaceholderText(/Erro ao gerar relatório/i);
+    const screenInput = screen.getByPlaceholderText(/Tela de associados/i);
     const descInput = screen.getByPlaceholderText(/Explique o que aconteceu/i);
 
     fireEvent.change(titleInput, { target: { value: "Falha na exportação" } });
+    fireEvent.change(screenInput, { target: { value: "Tela de Produtos" } });
     fireEvent.change(descInput, { target: { value: "O botão não responde ao clique" } });
 
     const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
@@ -114,10 +118,12 @@ describe("components/suporte/CreateTicketModal", () => {
       />
     );
 
-    const titleInput = screen.getByPlaceholderText(/Erro 500/i);
+    const titleInput = screen.getByPlaceholderText(/Erro ao gerar relatório/i);
+    const screenInput = screen.getByPlaceholderText(/Tela de associados/i);
     const descInput = screen.getByPlaceholderText(/Explique o que aconteceu/i);
 
     fireEvent.change(titleInput, { target: { value: "Falha" } });
+    fireEvent.change(screenInput, { target: { value: "Tela" } });
     fireEvent.change(descInput, { target: { value: "Descrição" } });
 
     const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });

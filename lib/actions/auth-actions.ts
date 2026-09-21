@@ -3,7 +3,7 @@
 import { prisma } from "../db/prisma";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { createSession, deleteSession, getSession, requireSession, SessionPayload } from "../auth/session";
-import { Role } from "@prisma/client";
+import { Role, UserStatus } from "@prisma/client";
 
 export interface ActionResult<T = unknown> {
   success: boolean;
@@ -34,6 +34,14 @@ export async function loginAction(
       return { success: false, error: "E-mail ou senha incorretos." };
     }
 
+    if (user.deletedAt) {
+      return { success: false, error: "Esta conta foi desativada. Entre em contato com o suporte." };
+    }
+
+    if (user.status === "INATIVO") {
+      return { success: false, error: "Esta conta de cliente está inativa. Entre em contato com o suporte." };
+    }
+
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
       return { success: false, error: "E-mail ou senha incorretos." };
@@ -45,6 +53,8 @@ export async function loginAction(
       email: user.email,
       company: user.company,
       contractNumber: user.contractNumber,
+      systemUrl: user.systemUrl,
+      status: user.status,
       role: user.role,
     };
 
@@ -91,6 +101,8 @@ export async function createUserAction(data: {
   email: string;
   company: string;
   contractNumber?: string;
+  systemUrl?: string;
+  status?: UserStatus;
   role: Role;
   password: string;
 }): Promise<ActionResult<{ id: string; email: string; name: string }>> {
@@ -104,6 +116,8 @@ export async function createUserAction(data: {
     const email = data.email?.toLowerCase().trim();
     const company = data.company?.trim();
     const contractNumber = data.contractNumber?.trim() || null;
+    const systemUrl = data.systemUrl?.trim() || null;
+    const status = data.status || "ATIVO";
     const role = data.role;
     const password = data.password;
 
@@ -135,6 +149,8 @@ export async function createUserAction(data: {
         email,
         company,
         contractNumber,
+        systemUrl,
+        status,
         role,
         passwordHash,
       },
@@ -158,7 +174,7 @@ export async function createUserAction(data: {
 }
 
 /**
- * Lists all registered users (restricted exclusively to SUPORTE).
+ * Lists all active registered users (restricted exclusively to SUPORTE).
  */
 export async function listUsersAction(): Promise<
   ActionResult<
@@ -168,6 +184,8 @@ export async function listUsersAction(): Promise<
       email: string;
       company: string;
       contractNumber: string | null;
+      systemUrl: string | null;
+      status: UserStatus;
       role: Role;
       createdAt: Date;
       ticketsCount: number;
@@ -178,10 +196,11 @@ export async function listUsersAction(): Promise<
     await requireSession(["SUPORTE"]);
 
     const users = await prisma.user.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
-          select: { tickets: true },
+          select: { tickets: { where: { deletedAt: null } } },
         },
       },
     });
@@ -194,6 +213,8 @@ export async function listUsersAction(): Promise<
         email: u.email,
         company: u.company,
         contractNumber: u.contractNumber,
+        systemUrl: u.systemUrl,
+        status: u.status,
         role: u.role,
         createdAt: u.createdAt,
         ticketsCount: u._count.tickets,
@@ -202,5 +223,62 @@ export async function listUsersAction(): Promise<
   } catch (error) {
     console.error("List users error:", error);
     return { success: false, error: "Acesso negado ou erro ao listar usuários." };
+  }
+}
+
+/**
+ * Performs soft-delete on a user account (restricted exclusively to SUPORTE).
+ */
+export async function deleteUserAction(userId: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession(["SUPORTE"]);
+    if (!session) {
+      return { success: false, error: "Apenas usuários com perfil SUPORTE podem excluir clientes." };
+    }
+
+    if (session.userId === userId) {
+      return { success: false, error: "Você não pode excluir seu próprio usuário." };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        status: "INATIVO",
+      },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Delete user error:", error);
+    if (error.message === "FORBIDDEN" || error.message === "UNAUTHORIZED") {
+      return { success: false, error: "Acesso negado: permissão de SUPORTE necessária." };
+    }
+    return { success: false, error: "Erro ao excluir usuário." };
+  }
+}
+
+/**
+ * Updates a user's status between ATIVO and INATIVO (restricted exclusively to SUPORTE).
+ */
+export async function toggleUserStatusAction(
+  userId: string,
+  newStatus: UserStatus
+): Promise<ActionResult> {
+  try {
+    await requireSession(["SUPORTE"]);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { status: newStatus },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Toggle user status error:", error);
+    if (error.message === "FORBIDDEN" || error.message === "UNAUTHORIZED") {
+      return { success: false, error: "Acesso negado: permissão de SUPORTE necessária." };
+    }
+    return { success: false, error: "Erro ao atualizar status do usuário." };
   }
 }

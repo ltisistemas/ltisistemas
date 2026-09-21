@@ -12,6 +12,11 @@ enum Role {
   CLIENTE
 }
 
+enum UserStatus {
+  ATIVO
+  INATIVO
+}
+
 enum TicketStatus {
   ABERTO
   PENDENTE
@@ -19,15 +24,18 @@ enum TicketStatus {
 }
 
 model User {
-  id             String   @id @default(cuid())
+  id             String      @id @default(cuid())
   name           String
-  email          String   @unique
+  email          String      @unique
   company        String
   contractNumber String?
-  role           Role     @default(CLIENTE)
+  systemUrl      String?
+  status         UserStatus  @default(ATIVO)
+  role           Role        @default(CLIENTE)
   passwordHash   String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   tickets Ticket[]
 
@@ -39,7 +47,10 @@ model Ticket {
   ticketNumber Int          @default(autoincrement())
   title        String
   description  String       @db.Text
+  screenName   String       @default("Geral")
   status       TicketStatus @default(ABERTO)
+  slaDueAt     DateTime     @default(now())
+  deletedAt    DateTime?
   userId       String
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 

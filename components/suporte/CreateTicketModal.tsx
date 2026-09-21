@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
-import { X, Upload, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { X, Upload, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2, Layout, Clock } from "lucide-react";
 import { createTicketAction, AttachmentInput } from "@/lib/actions/ticket-actions";
 import { compressImageToBase64 } from "@/lib/utils/image-compression";
 
@@ -17,6 +17,7 @@ export function CreateTicketModal({
   onSuccess,
 }: CreateTicketModalProps) {
   const [title, setTitle] = useState("");
+  const [screenName, setScreenName] = useState("");
   const [description, setDescription] = useState("");
   const [attachments, setAttachments] = useState<AttachmentInput[]>([]);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
@@ -74,8 +75,8 @@ export function CreateTicketModal({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!title.trim() || !description.trim()) {
-      setErrorMessage("Por favor, preencha o título e a descrição do incidente.");
+    if (!title.trim() || !screenName.trim() || !description.trim()) {
+      setErrorMessage("Por favor, preencha o título, o nome da tela e a descrição do incidente.");
       return;
     }
 
@@ -84,6 +85,7 @@ export function CreateTicketModal({
     try {
       const res = await createTicketAction({
         title,
+        screenName,
         description,
         attachments,
       });
@@ -96,6 +98,7 @@ export function CreateTicketModal({
 
       // Reset fields
       setTitle("");
+      setScreenName("");
       setDescription("");
       setAttachments([]);
       setIsSubmitting(false);
@@ -118,7 +121,7 @@ export function CreateTicketModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl rounded-2xl border border-slate-800 bg-[#0d131f] p-6 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl rounded-2xl border border-slate-800 bg-[#0d131f] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -139,6 +142,14 @@ export function CreateTicketModal({
           </button>
         </div>
 
+        {/* SLA Info Banner */}
+        <div className="mt-4 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/25 flex items-center gap-2.5 text-xs text-cyan-300">
+          <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span>
+            <strong>SLA de 6 horas para análise:</strong> Sua solicitação receberá atendimento e primeira avaliação técnica em até 6 horas úteis.
+          </span>
+        </div>
+
         {/* Error Alert */}
         {errorMessage && (
           <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2.5 text-xs text-red-400">
@@ -149,18 +160,36 @@ export function CreateTicketModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Título do Incidente / Problema <span className="text-cyan-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Ex: Erro 500 ao gerar relatório fiscal mensal"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Título do Incidente <span className="text-cyan-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Erro ao gerar relatório"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Nome da Tela / Módulo <span className="text-cyan-400">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Tela de associados / Produtos"
+                  value={screenName}
+                  onChange={(e) => setScreenName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors"
+                />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -170,7 +199,7 @@ export function CreateTicketModal({
             <textarea
               required
               rows={4}
-              placeholder="Explique o que aconteceu, passos para reproduzir o erro e o comportamento esperado..."
+              placeholder="Explique o que aconteceu na tela, passos para reproduzir o erro e o comportamento esperado..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors resize-none"

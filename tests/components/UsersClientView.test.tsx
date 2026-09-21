@@ -20,6 +20,8 @@ describe("components/suporte/UsersClientView", () => {
       email: "alpha@empresa.com",
       company: "Alpha Corp",
       contractNumber: "CTR-01",
+      systemUrl: "https://alpha.com",
+      status: "ATIVO" as const,
       role: Role.CLIENTE,
       createdAt: new Date(),
       ticketsCount: 4,
@@ -30,18 +32,21 @@ describe("components/suporte/UsersClientView", () => {
       email: "beta@ltisistemas.com",
       company: "LTI Sistemas",
       contractNumber: null,
+      systemUrl: null,
+      status: "ATIVO" as const,
       role: Role.SUPORTE,
       createdAt: new Date(),
       ticketsCount: 0,
     },
   ];
 
-  it("should render users list table", () => {
+  it("should render users list table with systemUrl and status", () => {
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
     expect(screen.getByText("Gestão de Usuários")).toBeInTheDocument();
     expect(screen.getByText("Cliente Alpha")).toBeInTheDocument();
     expect(screen.getByText("alpha@empresa.com")).toBeInTheDocument();
+    expect(screen.getByText("alpha.com")).toBeInTheDocument();
     expect(screen.getByText("Suporte Beta")).toBeInTheDocument();
   });
 

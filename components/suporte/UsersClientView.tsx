@@ -12,11 +12,17 @@ import {
   FileText,
   Calendar,
   LifeBuoy,
+  Globe,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import { SupportHeader } from "./SupportHeader";
 import { CreateUserModal } from "./CreateUserModal";
-import { Role } from "@prisma/client";
+import { deleteUserAction, toggleUserStatusAction } from "@/lib/actions/auth-actions";
+import { Role, UserStatus } from "@prisma/client";
 
 interface UserItem {
   id: string;
@@ -24,6 +30,8 @@ interface UserItem {
   email: string;
   company: string;
   contractNumber: string | null;
+  systemUrl: string | null;
+  status: UserStatus;
   role: Role;
   createdAt: Date;
   ticketsCount: number;
@@ -39,6 +47,7 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
   const [usersList, setUsersList] = useState<UserItem[]>(initialUsers);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [actionUserId, setActionUserId] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -49,13 +58,57 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.company.toLowerCase().includes(q) ||
+        (u.systemUrl && u.systemUrl.toLowerCase().includes(q)) ||
         (u.contractNumber && u.contractNumber.toLowerCase().includes(q)) ||
-        u.role.toLowerCase().includes(q)
+        u.role.toLowerCase().includes(q) ||
+        u.status.toLowerCase().includes(q)
     );
   }, [usersList, searchQuery]);
 
   const handleUserCreated = () => {
     router.refresh();
+  };
+
+  const handleToggleStatus = async (targetUser: UserItem) => {
+    const newStatus = targetUser.status === "ATIVO" ? "INATIVO" : "ATIVO";
+    setActionUserId(targetUser.id);
+    try {
+      const res = await toggleUserStatusAction(targetUser.id, newStatus);
+      if (res.success) {
+        setUsersList((prev) =>
+          prev.map((u) => (u.id === targetUser.id ? { ...u, status: newStatus } : u))
+        );
+      } else {
+        alert(res.error || "Erro ao alterar status.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao alterar status do usuário.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async (targetUser: UserItem) => {
+    if (!confirm(`Deseja realmente desativar e excluir o usuário "${targetUser.name}"? Seus chamados anteriores serão preservados no histórico.`)) {
+      return;
+    }
+
+    setActionUserId(targetUser.id);
+    try {
+      const res = await deleteUserAction(targetUser.id);
+      if (res.success) {
+        setUsersList((prev) => prev.filter((u) => u.id !== targetUser.id));
+        router.refresh();
+      } else {
+        alert(res.error || "Erro ao excluir usuário.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao excluir usuário.");
+    } finally {
+      setActionUserId(null);
+    }
   };
 
   const formatDate = (date: Date | string) => {
@@ -82,7 +135,7 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
               </span>
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Controle de acessos de clientes e analistas de suporte.
+              Controle de acessos, status (ATIVO/INATIVO) e sistemas vinculados.
             </p>
           </div>
 
@@ -101,7 +154,7 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Buscar por nome, e-mail, empresa ou contrato..."
+              placeholder="Buscar por nome, e-mail, empresa, sistema ou contrato..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
@@ -109,7 +162,7 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
           </div>
         </div>
 
-        {/* Users Table / Grid */}
+        {/* Users Table */}
         <div className="rounded-2xl border border-slate-800 bg-[#0d131f] overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
@@ -124,6 +177,12 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                   <th scope="col" className="py-3.5 px-4">
                     Empresa / Contrato
                   </th>
+                  <th scope="col" className="py-3.5 px-4">
+                    Site / Sistema
+                  </th>
+                  <th scope="col" className="py-3.5 px-4 text-center">
+                    Status
+                  </th>
                   <th scope="col" className="py-3.5 px-4 text-center">
                     Perfil
                   </th>
@@ -131,14 +190,14 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                     Chamados
                   </th>
                   <th scope="col" className="py-3.5 px-4 text-right">
-                    Cadastrado em
+                    Ações
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <td colSpan={8} className="py-12 text-center text-slate-500">
                       Nenhum usuário encontrado com os filtros aplicados.
                     </td>
                   </tr>
@@ -173,12 +232,49 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                         </div>
                       </td>
 
+                      <td className="py-3.5 px-4 text-slate-300">
+                        {u.systemUrl ? (
+                          <div className="flex items-center gap-1.5 text-cyan-400">
+                            <Globe className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            {u.systemUrl.startsWith("http") ? (
+                              <a
+                                href={u.systemUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline truncate max-w-[150px] inline-block"
+                              >
+                                {u.systemUrl.replace(/^https?:\/\//, "")}
+                              </a>
+                            ) : (
+                              <span className="truncate max-w-[150px]">{u.systemUrl}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          onClick={() => handleToggleStatus(u)}
+                          disabled={actionUserId === u.id}
+                          title={`Clique para alternar status (${u.status})`}
+                          className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-all ${
+                            u.status === "ATIVO"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                          }`}
+                        >
+                          {u.status === "ATIVO" ? "ATIVO" : "INATIVO"}
+                        </button>
+                      </td>
+
                       <td className="py-3.5 px-4 text-center">
                         <span
                           className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             u.role === Role.SUPORTE
                               ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30"
-                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                              : "bg-blue-500/10 text-blue-400 border-blue-500/30"
                           }`}
                         >
                           {u.role}
@@ -191,8 +287,17 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right text-slate-400 text-[11px]">
-                        {formatDate(u.createdAt)}
+                      <td className="py-3.5 px-4 text-right">
+                        {u.id !== user.userId && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            disabled={actionUserId === u.id}
+                            title="Desativar e excluir cliente (Soft-delete)"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -211,3 +316,4 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
     </div>
   );
 }
+

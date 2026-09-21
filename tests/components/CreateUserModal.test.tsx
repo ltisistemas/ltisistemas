@@ -23,6 +23,7 @@ describe("components/suporte/CreateUserModal", () => {
     expect(screen.getByPlaceholderText(/Carlos Oliveira/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/carlos@empresa.com.br/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Empresa XYZ/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/https:\/\/app\.cliente\.com\.br/i)).toBeInTheDocument();
   });
 
   it("should toggle password visibility", () => {
@@ -69,9 +70,14 @@ describe("components/suporte/CreateUserModal", () => {
     fireEvent.change(screen.getByPlaceholderText(/CTR-2026-042/i), {
       target: { value: "CTR-999" },
     });
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: Role.SUPORTE },
+    fireEvent.change(screen.getByPlaceholderText(/https:\/\/app\.cliente\.com\.br/i), {
+      target: { value: "https://meusistema.com" },
     });
+
+    const selects = screen.getAllByRole("combobox");
+    fireEvent.change(selects[0], { target: { value: "ATIVO" } });
+    fireEvent.change(selects[1], { target: { value: Role.SUPORTE } });
+
     fireEvent.change(screen.getByPlaceholderText(/Mínimo 6 dígitos/i), {
       target: { value: "123456" },
     });

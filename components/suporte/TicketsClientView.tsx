@@ -19,10 +19,13 @@ import {
   UserPlus,
   Inbox,
   FileText,
+  Globe,
+  Layout,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 import { StatusBadge } from "./StatusBadge";
+import { SlaBadge } from "./SlaBadge";
 import { SupportHeader } from "./SupportHeader";
 import { CreateTicketModal } from "./CreateTicketModal";
 import { CreateUserModal } from "./CreateUserModal";
@@ -61,9 +64,11 @@ export function TicketsClientView({
       const matchesSearch =
         ticket.title.toLowerCase().includes(q) ||
         ticket.description.toLowerCase().includes(q) ||
+        (ticket.screenName && ticket.screenName.toLowerCase().includes(q)) ||
         ticket.ticketNumber.toString().includes(q) ||
         ticket.user.name.toLowerCase().includes(q) ||
         ticket.user.company.toLowerCase().includes(q) ||
+        (ticket.user.systemUrl && ticket.user.systemUrl.toLowerCase().includes(q)) ||
         (ticket.user.contractNumber &&
           ticket.user.contractNumber.toLowerCase().includes(q));
 
@@ -268,7 +273,7 @@ export function TicketsClientView({
             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Buscar chamado, empresa ou título..."
+              placeholder="Buscar chamado, tela, empresa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
@@ -317,6 +322,11 @@ export function TicketsClientView({
                           {ticket.title}
                         </h2>
                         <StatusBadge status={ticket.status} size="sm" />
+                        <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="sm" />
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+                          <Layout className="w-3 h-3 text-cyan-400" />
+                          Tela: {ticket.screenName}
+                        </span>
                         {ticket.attachmentsCount > 0 && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
                             <ImageIcon className="w-3 h-3 text-cyan-400" />
@@ -343,6 +353,12 @@ export function TicketsClientView({
                                 </span>
                               )}
                             </span>
+                            {ticket.user.systemUrl && (
+                              <span className="flex items-center gap-1 text-cyan-400">
+                                <Globe className="w-3 h-3 text-slate-500" />
+                                {ticket.user.systemUrl.replace(/^https?:\/\//, "")}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
                               <User className="w-3 h-3 text-slate-500" />
                               {ticket.user.name}

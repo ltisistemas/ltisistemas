@@ -17,10 +17,14 @@ import {
   Loader2,
   Maximize2,
   Download,
+  Globe,
+  Layout,
+  Trash2,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
-import { TicketDetail, updateTicketStatusAction } from "@/lib/actions/ticket-actions";
+import { TicketDetail, updateTicketStatusAction, deleteTicketAction } from "@/lib/actions/ticket-actions";
 import { StatusBadge } from "./StatusBadge";
+import { SlaBadge } from "./SlaBadge";
 import { SupportHeader } from "./SupportHeader";
 import { ImageLightboxModal } from "./ImageLightboxModal";
 import { TicketStatus } from "@prisma/client";
@@ -37,6 +41,7 @@ export function TicketDetailClientView({
   const router = useRouter();
   const [ticket, setTicket] = useState<TicketDetail>(initialTicket);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
   // Lightbox state
@@ -76,6 +81,28 @@ export function TicketDetailClientView({
     }
   };
 
+  const handleDeleteTicket = async () => {
+    if (!confirm("Deseja realmente excluir este chamado? O chamado será arquivado logicamente via soft-delete.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await deleteTicketAction(ticket.id);
+      if (res.success) {
+        router.push("/suporte/chamados");
+        router.refresh();
+      } else {
+        alert(res.error || "Erro ao excluir chamado.");
+        setIsDeleting(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao excluir chamado.");
+      setIsDeleting(false);
+    }
+  };
+
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return new Intl.DateTimeFormat("pt-BR", {
@@ -92,8 +119,8 @@ export function TicketDetailClientView({
       <SupportHeader user={user} activeTab="chamados" />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back link */}
-        <div className="mb-6">
+        {/* Back link & Actions */}
+        <div className="flex items-center justify-between mb-6">
           <Link
             href="/suporte/chamados"
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors"
@@ -101,6 +128,16 @@ export function TicketDetailClientView({
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para a lista de chamados</span>
           </Link>
+
+          <button
+            onClick={handleDeleteTicket}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 text-xs font-medium transition-colors disabled:opacity-50"
+            title="Excluir chamado (Soft-delete)"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>{isDeleting ? "Excluindo..." : "Excluir Chamado"}</span>
+          </button>
         </div>
 
         {/* Status Error Alert */}
@@ -114,12 +151,17 @@ export function TicketDetailClientView({
         {/* Main Ticket Header Card */}
         <div className="rounded-2xl border border-slate-800 bg-[#0d131f] p-6 sm:p-8 shadow-xl mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="font-mono text-sm font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-500/30 px-3 py-1 rounded-xl">
                   Chamado #{ticket.ticketNumber}
                 </span>
                 <StatusBadge status={ticket.status} size="lg" />
+                <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-200 bg-slate-800/90 border border-slate-700 px-3 py-1 rounded-xl">
+                  <Layout className="w-3.5 h-3.5 text-cyan-400" />
+                  Tela: {ticket.screenName}
+                </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                 {ticket.title}
@@ -191,6 +233,23 @@ export function TicketDetailClientView({
                   {ticket.user.company}
                   {ticket.user.contractNumber ? ` (${ticket.user.contractNumber})` : ""}
                 </span>
+                {ticket.user.systemUrl && (
+                  <span className="flex items-center gap-1 text-cyan-400 text-[11px] mt-0.5">
+                    <Globe className="w-3 h-3" />
+                    {ticket.user.systemUrl.startsWith("http") ? (
+                      <a
+                        href={ticket.user.systemUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        {ticket.user.systemUrl.replace(/^https?:\/\//, "")}
+                      </a>
+                    ) : (
+                      ticket.user.systemUrl
+                    )}
+                  </span>
+                )}
               </div>
             </div>
 

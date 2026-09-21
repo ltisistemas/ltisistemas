@@ -19,8 +19,10 @@ describe("components/suporte/TicketsClientView", () => {
       id: "tkt_1",
       ticketNumber: 101,
       title: "Erro no webhook",
+      screenName: "Tela de Integrações",
       description: "Webhook não está retornando status 200",
       status: TicketStatus.ABERTO,
+      slaDueAt: new Date(Date.now() + 4 * 3600 * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),
       attachmentsCount: 2,
@@ -29,6 +31,7 @@ describe("components/suporte/TicketsClientView", () => {
         name: "Carlos Cliente",
         company: "Alpha Corp",
         contractNumber: "CTR-01",
+        systemUrl: "https://alpha.com",
         email: "carlos@alpha.com",
       },
     },
@@ -36,8 +39,10 @@ describe("components/suporte/TicketsClientView", () => {
       id: "tkt_2",
       ticketNumber: 102,
       title: "Dúvida sobre relatório",
+      screenName: "Módulo Financeiro",
       description: "Como exportar para excel?",
       status: TicketStatus.FECHADO,
+      slaDueAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
       attachmentsCount: 0,
@@ -46,6 +51,7 @@ describe("components/suporte/TicketsClientView", () => {
         name: "Ana Cliente",
         company: "Beta Corp",
         contractNumber: "CTR-02",
+        systemUrl: null,
         email: "ana@beta.com",
       },
     },
@@ -53,8 +59,10 @@ describe("components/suporte/TicketsClientView", () => {
       id: "tkt_3",
       ticketNumber: 103,
       title: "Pendente aprovação",
+      screenName: "Cadastro de Produtos",
       description: "Aguardando confirmação do cliente",
       status: TicketStatus.PENDENTE,
+      slaDueAt: new Date(Date.now() + 1 * 3600 * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),
       attachmentsCount: 0,
@@ -63,6 +71,7 @@ describe("components/suporte/TicketsClientView", () => {
         name: "Pedro Cliente",
         company: "Gamma Corp",
         contractNumber: null,
+        systemUrl: "https://gamma.com",
         email: "pedro@gamma.com",
       },
     },
@@ -75,7 +84,7 @@ describe("components/suporte/TicketsClientView", () => {
     fechado: 1,
   };
 
-  it("should render tickets list and statistics cards", () => {
+  it("should render tickets list, screen names and statistics cards", () => {
     render(
       <TicketsClientView
         user={supportUser}
@@ -86,6 +95,7 @@ describe("components/suporte/TicketsClientView", () => {
 
     expect(screen.getByText("Painel Geral de Atendimento")).toBeInTheDocument();
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    expect(screen.getByText("Tela: Tela de Integrações")).toBeInTheDocument();
     expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
     expect(screen.getByText("#101")).toBeInTheDocument();
     expect(screen.getByText("#102")).toBeInTheDocument();
@@ -100,7 +110,7 @@ describe("components/suporte/TicketsClientView", () => {
       />
     );
 
-    const searchInput = screen.getByPlaceholderText(/Buscar chamado, empresa ou título/i);
+    const searchInput = screen.getByPlaceholderText(/Buscar chamado, tela, empresa/i);
     fireEvent.change(searchInput, { target: { value: "webhook" } });
 
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();

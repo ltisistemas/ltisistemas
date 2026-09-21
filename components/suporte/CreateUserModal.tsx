@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { X, UserPlus, Loader2, AlertCircle, Eye, EyeOff, Building, Mail, User, Key, FileText } from "lucide-react";
+import { X, UserPlus, Loader2, AlertCircle, Eye, EyeOff, Building, Mail, User, Key, FileText, Globe, CheckCircle2 } from "lucide-react";
 import { createUserAction } from "@/lib/actions/auth-actions";
-import { Role } from "@prisma/client";
+import { Role, UserStatus } from "@prisma/client";
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -20,6 +20,8 @@ export function CreateUserModal({
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [contractNumber, setContractNumber] = useState("");
+  const [systemUrl, setSystemUrl] = useState("");
+  const [status, setStatus] = useState<UserStatus>("ATIVO");
   const [role, setRole] = useState<Role>(Role.CLIENTE);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +52,8 @@ export function CreateUserModal({
         email,
         company,
         contractNumber: contractNumber.trim() || undefined,
+        systemUrl: systemUrl.trim() || undefined,
+        status,
         role,
         password,
       });
@@ -65,6 +69,8 @@ export function CreateUserModal({
       setEmail("");
       setCompany("");
       setContractNumber("");
+      setSystemUrl("");
+      setStatus("ATIVO");
       setPassword("");
       setIsSubmitting(false);
 
@@ -86,7 +92,7 @@ export function CreateUserModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl border border-slate-800 bg-[#0d131f] p-6 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg rounded-2xl border border-slate-800 bg-[#0d131f] p-6 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -188,6 +194,38 @@ export function CreateUserModal({
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Endereço Site/Sistema <span className="text-slate-500 text-[10px]">(URL ou Nome)</span>
+              </label>
+              <div className="relative">
+                <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="https://app.cliente.com.br"
+                  value={systemUrl}
+                  onChange={(e) => setSystemUrl(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Status do Cliente <span className="text-cyan-400">*</span>
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as UserStatus)}
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700 text-sm text-white focus:outline-none focus:border-cyan-500"
+              >
+                <option value="ATIVO">ATIVO</option>
+                <option value="INATIVO">INATIVO</option>
+              </select>
             </div>
           </div>
 

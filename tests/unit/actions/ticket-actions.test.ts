@@ -4,6 +4,7 @@ import {
   getTicketsAction,
   getTicketByIdAction,
   updateTicketStatusAction,
+  deleteTicketAction,
 } from "@/lib/actions/ticket-actions";
 import { prisma } from "@/lib/db/prisma";
 import { Role, TicketStatus } from "@prisma/client";
@@ -15,7 +16,7 @@ describe("lib/actions/ticket-actions", () => {
   });
 
   describe("createTicketAction", () => {
-    it("should reject ticket creation with missing title or description", async () => {
+    it("should reject ticket creation with missing title, screenName or description", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
         name: "Cliente",
@@ -24,13 +25,17 @@ describe("lib/actions/ticket-actions", () => {
         role: Role.CLIENTE,
       });
 
-      const res1 = await createTicketAction({ title: "", description: "Erro" });
+      const res1 = await createTicketAction({ title: "", screenName: "Tela 1", description: "Erro" });
       expect(res1.success).toBe(false);
       expect(res1.error).toContain("obrigatórios");
 
-      const res2 = await createTicketAction({ title: "Título", description: "" });
+      const res2 = await createTicketAction({ title: "Título", screenName: "", description: "Desc" });
       expect(res2.success).toBe(false);
       expect(res2.error).toContain("obrigatórios");
+
+      const res3 = await createTicketAction({ title: "Título", screenName: "Tela 1", description: "" });
+      expect(res3.success).toBe(false);
+      expect(res3.error).toContain("obrigatórios");
     });
 
     it("should reject ticket creation with more than 3 attachments", async () => {
@@ -44,6 +49,7 @@ describe("lib/actions/ticket-actions", () => {
 
       const res = await createTicketAction({
         title: "Problema",
+        screenName: "Tela Principal",
         description: "Desc",
         attachments: [
           { fileName: "1.png", mimeType: "image/png", base64Data: "data:image/png;base64,123" },
@@ -68,6 +74,7 @@ describe("lib/actions/ticket-actions", () => {
 
       const res = await createTicketAction({
         title: "Problema",
+        screenName: "Tela de Checkout",
         description: "Desc",
         attachments: [
           { fileName: "arquivo.pdf", mimeType: "application/pdf", base64Data: "data:application/pdf;base64,123" },
@@ -90,6 +97,7 @@ describe("lib/actions/ticket-actions", () => {
       const giantBase64 = "data:image/png;base64," + "a".repeat(5 * 1024 * 1024);
       const res = await createTicketAction({
         title: "Problema",
+        screenName: "Tela de Login",
         description: "Desc",
         attachments: [
           { fileName: "gigante.png", mimeType: "image/png", base64Data: giantBase64 },
@@ -105,6 +113,7 @@ describe("lib/actions/ticket-actions", () => {
 
       const res = await createTicketAction({
         title: "Problema",
+        screenName: "Tela",
         description: "Desc",
       });
 
@@ -117,6 +126,7 @@ describe("lib/actions/ticket-actions", () => {
 
       const res = await createTicketAction({
         title: "Problema",
+        screenName: "Tela",
         description: "Desc",
       });
 
@@ -124,7 +134,7 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.error).toContain("Erro ao abrir chamado");
     });
 
-    it("should successfully create ticket and persist attachments", async () => {
+    it("should successfully create ticket, calculate 6h SLA and persist screenName", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
         name: "Cliente",
@@ -133,12 +143,16 @@ describe("lib/actions/ticket-actions", () => {
         role: Role.CLIENTE,
       });
 
+      const due = new Date(Date.now() + 6 * 3600 * 1000);
       vi.spyOn(prisma.ticket, "create").mockResolvedValue({
         id: "tkt_100",
         ticketNumber: 42,
         title: "Erro 500 no checkout",
+        screenName: "Tela de Pagamento",
         description: "Falha ao processar pagamento",
         status: TicketStatus.ABERTO,
+        slaDueAt: due,
+        deletedAt: null,
         userId: "cli_1",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -146,6 +160,7 @@ describe("lib/actions/ticket-actions", () => {
 
       const res = await createTicketAction({
         title: "Erro 500 no checkout",
+        screenName: "Tela de Pagamento",
         description: "Falha ao processar pagamento",
         attachments: [
           { fileName: "print.png", mimeType: "image/png", base64Data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" },
@@ -155,11 +170,12 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.id).toBe("tkt_100");
       expect(res.data?.ticketNumber).toBe(42);
+      expect(res.data?.slaDueAt).toBeDefined();
     });
   });
 
   describe("getTicketsAction", () => {
-    it("should restrict client to own tickets only", async () => {
+    it("should restrict client to own tickets only and filter deletedAt null", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
         name: "Cliente",
@@ -173,8 +189,11 @@ describe("lib/actions/ticket-actions", () => {
           id: "tkt_1",
           ticketNumber: 1,
           title: "Chamado 1",
+          screenName: "Tela de Clientes",
           description: "Desc",
           status: TicketStatus.ABERTO,
+          slaDueAt: new Date(),
+          deletedAt: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           _count: { attachments: 1 },
@@ -183,6 +202,7 @@ describe("lib/actions/ticket-actions", () => {
             name: "Cliente",
             company: "Empresa",
             contractNumber: "01",
+            systemUrl: "https://app.empresa.com",
             email: "cli@empresa.com",
           },
         } as any,
@@ -193,10 +213,11 @@ describe("lib/actions/ticket-actions", () => {
       const res = await getTicketsAction("ALL");
       expect(res.success).toBe(true);
       expect(res.data?.tickets.length).toBe(1);
+      expect(res.data?.tickets[0].screenName).toBe("Tela de Clientes");
 
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ userId: "cli_1" }),
+          where: expect.objectContaining({ userId: "cli_1", deletedAt: null }),
         })
       );
     });
@@ -218,7 +239,7 @@ describe("lib/actions/ticket-actions", () => {
 
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: TicketStatus.PENDENTE },
+          where: { deletedAt: null, status: TicketStatus.PENDENTE },
         })
       );
     });
@@ -241,7 +262,7 @@ describe("lib/actions/ticket-actions", () => {
   });
 
   describe("getTicketByIdAction", () => {
-    it("should return error if ticket does not exist", async () => {
+    it("should return error if ticket does not exist or is soft-deleted", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
         name: "Cliente",
@@ -252,9 +273,18 @@ describe("lib/actions/ticket-actions", () => {
 
       vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue(null);
 
-      const res = await getTicketByIdAction("non_existent");
-      expect(res.success).toBe(false);
-      expect(res.error).toContain("não encontrado");
+      const res1 = await getTicketByIdAction("non_existent");
+      expect(res1.success).toBe(false);
+      expect(res1.error).toContain("não encontrado");
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "deleted_tkt",
+        deletedAt: new Date(),
+      } as any);
+
+      const res2 = await getTicketByIdAction("deleted_tkt");
+      expect(res2.success).toBe(false);
+      expect(res2.error).toContain("não encontrado ou excluído");
     });
 
     it("should enforce privacy isolation: forbid client from viewing another client ticket", async () => {
@@ -270,8 +300,11 @@ describe("lib/actions/ticket-actions", () => {
         id: "tkt_other",
         ticketNumber: 88,
         title: "Chamado de outro cliente",
+        screenName: "Tela Secreta",
         description: "Privado",
         status: TicketStatus.ABERTO,
+        slaDueAt: new Date(),
+        deletedAt: null,
         userId: "cli_2_different_user",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -280,6 +313,7 @@ describe("lib/actions/ticket-actions", () => {
           name: "Cliente 2",
           company: "Empresa 2",
           contractNumber: null,
+          systemUrl: null,
           email: "cli2@empresa.com",
         },
         attachments: [],
@@ -290,7 +324,7 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.error).toContain("não tem permissão");
     });
 
-    it("should allow client to view their own ticket with attachments", async () => {
+    it("should allow client to view their own ticket with attachments, screenName and SLA", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
         name: "Cliente 1",
@@ -303,8 +337,11 @@ describe("lib/actions/ticket-actions", () => {
         id: "tkt_mine",
         ticketNumber: 12,
         title: "Meu chamado",
+        screenName: "Módulo Financeiro",
         description: "Descrição",
         status: TicketStatus.ABERTO,
+        slaDueAt: new Date(),
+        deletedAt: null,
         userId: "cli_1",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -313,6 +350,7 @@ describe("lib/actions/ticket-actions", () => {
           name: "Cliente 1",
           company: "Empresa 1",
           contractNumber: null,
+          systemUrl: "https://financeiro.app",
           email: "cli1@empresa.com",
         },
         attachments: [
@@ -329,6 +367,7 @@ describe("lib/actions/ticket-actions", () => {
       const res = await getTicketByIdAction("tkt_mine");
       expect(res.success).toBe(true);
       expect(res.data?.id).toBe("tkt_mine");
+      expect(res.data?.screenName).toBe("Módulo Financeiro");
       expect(res.data?.attachments.length).toBe(1);
     });
 
@@ -403,4 +442,99 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.error).toContain("Erro ao atualizar status");
     });
   });
+
+  describe("deleteTicketAction", () => {
+    it("should reject if ticket is not found", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue(null);
+
+      const res = await deleteTicketAction("tkt_missing");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("não encontrado");
+    });
+
+    it("should reject client deleting other client ticket", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente 1",
+        email: "cli1@empresa.com",
+        company: "Empresa 1",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_other",
+        userId: "cli_2",
+        deletedAt: null,
+      } as any);
+
+      const res = await deleteTicketAction("tkt_other");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("não tem permissão");
+    });
+
+    it("should allow ticket owner client to soft-delete ticket", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente 1",
+        email: "cli1@empresa.com",
+        company: "Empresa 1",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_mine",
+        userId: "cli_1",
+        deletedAt: null,
+      } as any);
+
+      vi.spyOn(prisma.ticket, "update").mockResolvedValue({} as any);
+
+      const res = await deleteTicketAction("tkt_mine");
+      expect(res.success).toBe(true);
+      expect(prisma.ticket.update).toHaveBeenCalledWith({
+        where: { id: "tkt_mine" },
+        data: expect.objectContaining({
+          deletedAt: expect.any(Date),
+        }),
+      });
+    });
+
+    it("should allow SUPORTE to soft-delete any ticket", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "sup@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_any",
+        userId: "cli_99",
+        deletedAt: null,
+      } as any);
+
+      vi.spyOn(prisma.ticket, "update").mockResolvedValue({} as any);
+
+      const res = await deleteTicketAction("tkt_any");
+      expect(res.success).toBe(true);
+    });
+
+    it("should handle error in deleteTicketAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("UNAUTHORIZED"));
+
+      const res = await deleteTicketAction("tkt_1");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Sua sessão expirou");
+    });
+  });
 });
+
