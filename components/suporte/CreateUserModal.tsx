@@ -224,6 +224,7 @@ export function CreateUserModal({
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                  title={showPassword ? "Ocultar senha" : "Ver senha"}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

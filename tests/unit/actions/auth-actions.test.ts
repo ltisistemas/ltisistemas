@@ -55,6 +55,14 @@ describe("lib/actions/auth-actions", () => {
       expect(res.error).toContain("E-mail ou senha incorretos");
     });
 
+    it("should handle unexpected error in loginAction", async () => {
+      vi.spyOn(prisma.user, "findUnique").mockRejectedValue(new Error("DB_FATAL"));
+
+      const res = await loginAction("luiz@lti.com", "pass");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Ocorreu um erro interno");
+    });
+
     it("should successfully authenticate and return redirectUrl", async () => {
       vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
         id: "usr_1",
@@ -84,6 +92,14 @@ describe("lib/actions/auth-actions", () => {
 
       const res = await logoutAction();
       expect(res.success).toBe(true);
+    });
+
+    it("should handle logout exception", async () => {
+      vi.spyOn(sessionModule, "deleteSession").mockRejectedValue(new Error("COOKIE_FAIL"));
+
+      const res = await logoutAction();
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao encerrar sessão");
     });
   });
 
@@ -161,6 +177,27 @@ describe("lib/actions/auth-actions", () => {
       expect(res.error).toContain("mínimo 6 caracteres");
     });
 
+    it("should reject creation with invalid role", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      const res = await createUserAction({
+        name: "User",
+        email: "user@test.com",
+        company: "Test",
+        role: "INVALID_ROLE" as any,
+        password: "validpassword123",
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Perfil de usuário inválido");
+    });
+
     it("should reject creation if email already exists", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "adm_1",
@@ -229,6 +266,29 @@ describe("lib/actions/auth-actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.id).toBe("new_usr_99");
       expect(res.data?.email).toBe("novo@cliente.com");
+    });
+
+    it("should handle unexpected error during user creation", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findUnique").mockRejectedValue(new Error("DB_CONNECTION_FAIL"));
+
+      const res = await createUserAction({
+        name: "User",
+        email: "user@test.com",
+        company: "Test",
+        role: Role.CLIENTE,
+        password: "password123",
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao criar usuário");
     });
   });
 

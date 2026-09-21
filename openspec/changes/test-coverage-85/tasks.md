@@ -20,5 +20,5 @@
 
 ## 5. Coverage Enforcement, Verification & Git Sync
 
-- [ ] 5.1 Execute test coverage runner (`npm run test:coverage`) and verify code coverage is at or above 85% across all metrics.
-- [ ] 5.2 Commit all changes with a descriptive commit message and push to the remote repository.
+- [x] 5.1 Execute test coverage runner (`npm run test:coverage`) and verify code coverage is at or above 85% across all metrics.
+- [x] 5.2 Commit all changes with a descriptive commit message and push to the remote repository.

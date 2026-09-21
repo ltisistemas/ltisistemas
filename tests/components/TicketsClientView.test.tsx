@@ -49,12 +49,29 @@ describe("components/suporte/TicketsClientView", () => {
         email: "ana@beta.com",
       },
     },
+    {
+      id: "tkt_3",
+      ticketNumber: 103,
+      title: "Pendente aprovação",
+      description: "Aguardando confirmação do cliente",
+      status: TicketStatus.PENDENTE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      attachmentsCount: 0,
+      user: {
+        id: "cli_3",
+        name: "Pedro Cliente",
+        company: "Gamma Corp",
+        contractNumber: null,
+        email: "pedro@gamma.com",
+      },
+    },
   ];
 
   const sampleStats: TicketStats = {
-    total: 2,
+    total: 3,
     aberto: 1,
-    pendente: 0,
+    pendente: 1,
     fechado: 1,
   };
 
@@ -90,7 +107,7 @@ describe("components/suporte/TicketsClientView", () => {
     expect(screen.queryByText("Dúvida sobre relatório")).toBeNull();
   });
 
-  it("should filter tickets by status pill", () => {
+  it("should filter tickets by clicking summary cards", () => {
     render(
       <TicketsClientView
         user={supportUser}
@@ -99,11 +116,45 @@ describe("components/suporte/TicketsClientView", () => {
       />
     );
 
-    const abertosBtn = screen.getByRole("button", { name: /Abertos \(1\)/i });
-    fireEvent.click(abertosBtn);
+    // Click Pendentes card
+    const pendentesCard = screen.getByText("Pendentes");
+    fireEvent.click(pendentesCard);
+    expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
+    expect(screen.queryByText("Erro no webhook")).toBeNull();
 
+    // Click Fechados card
+    const fechadosCard = screen.getByText("Resolvidos / Fechados");
+    fireEvent.click(fechadosCard);
+    expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
+
+    // Click Em Aberto card
+    const abertoCard = screen.getByText("Em Aberto");
+    fireEvent.click(abertoCard);
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
-    expect(screen.queryByText("Dúvida sobre relatório")).toBeNull();
+
+    // Click Total card
+    const totalCard = screen.getByText("Total Registrado");
+    fireEvent.click(totalCard);
+    expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
+    expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
+  });
+
+  it("should open modals when clicking buttons", () => {
+    render(
+      <TicketsClientView
+        user={supportUser}
+        initialTickets={sampleTickets}
+        initialStats={sampleStats}
+      />
+    );
+
+    const newTicketBtn = screen.getByRole("button", { name: /Abrir Novo Chamado/i });
+    fireEvent.click(newTicketBtn);
+    expect(screen.getByText("Abrir Novo Chamado de Suporte")).toBeInTheDocument();
+
+    const createUserBtn = screen.getByRole("button", { name: /Cadastrar Usuário/i });
+    fireEvent.click(createUserBtn);
+    expect(screen.getByText("Cadastrar Novo Usuário")).toBeInTheDocument();
   });
 
   it("should render empty state when no tickets match filter", () => {

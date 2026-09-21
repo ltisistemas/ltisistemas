@@ -78,6 +78,52 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.error).toContain("Apenas imagens são aceitas");
     });
 
+    it("should reject attachments exceeding size limit", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      const giantBase64 = "data:image/png;base64," + "a".repeat(5 * 1024 * 1024);
+      const res = await createTicketAction({
+        title: "Problema",
+        description: "Desc",
+        attachments: [
+          { fileName: "gigante.png", mimeType: "image/png", base64Data: giantBase64 },
+        ],
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("excede o tamanho máximo");
+    });
+
+    it("should handle unauthorized session error in createTicketAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("UNAUTHORIZED"));
+
+      const res = await createTicketAction({
+        title: "Problema",
+        description: "Desc",
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Sua sessão expirou");
+    });
+
+    it("should handle unexpected error in createTicketAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("DB_CRASH"));
+
+      const res = await createTicketAction({
+        title: "Problema",
+        description: "Desc",
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao abrir chamado");
+    });
+
     it("should successfully create ticket and persist attachments", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
         userId: "cli_1",
@@ -148,7 +194,6 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.tickets.length).toBe(1);
 
-      // Verify Prisma query was filtered by userId
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ userId: "cli_1" }),
@@ -171,12 +216,27 @@ describe("lib/actions/ticket-actions", () => {
       const res = await getTicketsAction(TicketStatus.PENDENTE);
       expect(res.success).toBe(true);
 
-      // Verify Prisma query was NOT filtered by userId
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { status: TicketStatus.PENDENTE },
         })
       );
+    });
+
+    it("should handle unauthorized error in getTicketsAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("UNAUTHORIZED"));
+
+      const res = await getTicketsAction("ALL");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Sua sessão expirou");
+    });
+
+    it("should handle database error in getTicketsAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("DB_ERROR"));
+
+      const res = await getTicketsAction("ALL");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao buscar chamados");
     });
   });
 
@@ -271,6 +331,18 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.data?.id).toBe("tkt_mine");
       expect(res.data?.attachments.length).toBe(1);
     });
+
+    it("should handle unauthorized and db errors in getTicketByIdAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("UNAUTHORIZED"));
+      const res1 = await getTicketByIdAction("1");
+      expect(res1.success).toBe(false);
+      expect(res1.error).toContain("Sua sessão expirou");
+
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("DB_ERROR"));
+      const res2 = await getTicketByIdAction("1");
+      expect(res2.success).toBe(false);
+      expect(res2.error).toContain("Erro ao carregar");
+    });
   });
 
   describe("updateTicketStatusAction", () => {
@@ -280,6 +352,20 @@ describe("lib/actions/ticket-actions", () => {
       const res = await updateTicketStatusAction("tkt_1", TicketStatus.FECHADO);
       expect(res.success).toBe(false);
       expect(res.error).toContain("Apenas a equipe de SUPORTE");
+    });
+
+    it("should reject invalid status value", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "sup@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      const res = await updateTicketStatusAction("tkt_1", "INVALID_STATUS" as any);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Status inválido");
     });
 
     it("should successfully update status for SUPORTE", async () => {
@@ -299,6 +385,22 @@ describe("lib/actions/ticket-actions", () => {
       const res = await updateTicketStatusAction("tkt_1", TicketStatus.FECHADO);
       expect(res.success).toBe(true);
       expect(res.data?.status).toBe(TicketStatus.FECHADO);
+    });
+
+    it("should handle db error in updateTicketStatusAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "sup@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.ticket, "update").mockRejectedValue(new Error("DB_CRASH"));
+
+      const res = await updateTicketStatusAction("tkt_1", TicketStatus.FECHADO);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao atualizar status");
     });
   });
 });

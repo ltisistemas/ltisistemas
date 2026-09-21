@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketDetailClientView } from "@/components/suporte/TicketDetailClientView";
 import { Role, TicketStatus } from "@prisma/client";
@@ -7,6 +7,10 @@ import { TicketDetail } from "@/lib/actions/ticket-actions";
 import * as ticketActions from "@/lib/actions/ticket-actions";
 
 describe("components/suporte/TicketDetailClientView", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const supportUser: SessionPayload = {
     userId: "sup_1",
     name: "Luiz Support",
@@ -79,6 +83,27 @@ describe("components/suporte/TicketDetailClientView", () => {
     });
   });
 
+  it("should display error message when status update fails", async () => {
+    vi.spyOn(ticketActions, "updateTicketStatusAction").mockResolvedValue({
+      success: false,
+      error: "Erro de permissão no servidor",
+    });
+
+    render(
+      <TicketDetailClientView
+        user={supportUser}
+        initialTicket={sampleTicket}
+      />
+    );
+
+    const pendenteBtn = screen.getByRole("button", { name: "Pendente" });
+    fireEvent.click(pendenteBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Erro de permissão no servidor")).toBeInTheDocument();
+    });
+  });
+
   it("should open lightbox modal when clicking attachment image", () => {
     render(
       <TicketDetailClientView
@@ -90,7 +115,23 @@ describe("components/suporte/TicketDetailClientView", () => {
     const thumbnail = screen.getByText("Visualizar");
     fireEvent.click(thumbnail);
 
-    // Lightbox opens with close button
     expect(screen.getByTitle("Fechar (Esc)")).toBeInTheDocument();
+  });
+
+  it("should render empty attachments placeholder when ticket has no attachments", () => {
+    const emptyTicket: TicketDetail = {
+      ...sampleTicket,
+      attachments: [],
+      attachmentsCount: 0,
+    };
+
+    render(
+      <TicketDetailClientView
+        user={supportUser}
+        initialTicket={emptyTicket}
+      />
+    );
+
+    expect(screen.getByText(/Nenhuma imagem ou captura de tela foi anexada/i)).toBeInTheDocument();
   });
 });
