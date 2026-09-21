@@ -18,4 +18,5 @@
 
 - [x] 3.3 Run `npm run test:coverage` to verify all tests pass and code coverage remains at or above 85% across Statements, Branches, Functions, and Lines.
 
-- [ ] 3.4 Run `npm run build` to ensure zero TypeScript errors and a successful Next.js production build.
+- [x] 3.4 Run `npm run build` to ensure zero TypeScript errors and a successful Next.js production build.
+
