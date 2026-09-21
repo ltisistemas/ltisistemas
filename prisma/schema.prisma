@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPORTE
+  CLIENTE
+}
+
+enum TicketStatus {
+  ABERTO
+  PENDENTE
+  FECHADO
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  company        String
+  contractNumber String?
+  role           Role     @default(CLIENTE)
+  passwordHash   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tickets Ticket[]
+
+  @@map("users")
+}
+
+model Ticket {
+  id           String       @id @default(cuid())
+  ticketNumber Int          @default(autoincrement())
+  title        String
+  description  String       @db.Text
+  status       TicketStatus @default(ABERTO)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  attachments TicketAttachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tickets")
+}
+
+model TicketAttachment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fileName   String
+  mimeType   String
+  base64Data String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@map("ticket_attachments")
+}

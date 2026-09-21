@@ -1,0 +1,79 @@
+/**
+ * Client-side helper to compress and convert image files to base64 Data URLs.
+ * Resizes large dimensions to max 1200px and optimizes compression quality.
+ */
+export async function compressImageToBase64(
+  file: File,
+  maxWidth = 1200,
+  maxHeight = 1200,
+  quality = 0.85
+): Promise<{ fileName: string; mimeType: string; base64Data: string }> {
+  return new Promise((resolve, reject) => {
+    // If not an image, reject
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("O arquivo selecionado não é uma imagem válida."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate aspect-ratio preserved dimensions
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          // Fallback to original read if canvas context fails
+          resolve({
+            fileName: file.name,
+            mimeType: file.type,
+            base64Data: event.target?.result as string,
+          });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Prefer image/webp or fallback to image/jpeg / original type
+        const outputMime = file.type === "image/png" ? "image/png" : "image/jpeg";
+        const compressedBase64 = canvas.toDataURL(outputMime, quality);
+
+        resolve({
+          fileName: file.name,
+          mimeType: outputMime,
+          base64Data: compressedBase64,
+        });
+      };
+
+      img.onerror = () => {
+        reject(new Error("Falha ao carregar a imagem para processamento."));
+      };
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Erro ao ler o arquivo selecionado."));
+    };
+  });
+}

@@ -7,7 +7,7 @@ import { trackEvent } from "@/lib/analytics";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { WhatsAppIcon } from "@/components/ui/Icons";
-import { Menu, X, Code2, ArrowUpRight } from "lucide-react";
+import { Menu, X, Code2, ArrowUpRight, LifeBuoy } from "lucide-react";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -75,7 +75,16 @@ export function Navbar() {
           </nav>
 
           {/* Desktop Right CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
+            <Link
+              href="/suporte/login"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 transition-all shadow-sm"
+              title="Acessar Central de Chamados"
+            >
+              <LifeBuoy className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Área do Cliente</span>
+            </Link>
+
             <Button
               href={siteConfig.contact.whatsappUrl}
               isExternal
@@ -125,7 +134,20 @@ export function Navbar() {
                 <ArrowUpRight className="h-4 w-4 text-slate-500" />
               </Link>
             ))}
-            <div className="pt-4 border-t border-slate-800/60 flex flex-col gap-2">
+
+            <Link
+              href="/suporte/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-base font-semibold text-cyan-400 hover:text-cyan-300 py-2 transition-colors flex items-center justify-between border-t border-slate-800/60"
+            >
+              <span className="flex items-center gap-2">
+                <LifeBuoy className="h-4 w-4" />
+                <span>Área do Cliente (Chamados)</span>
+              </span>
+              <ArrowUpRight className="h-4 w-4 text-cyan-500" />
+            </Link>
+
+            <div className="pt-2 flex flex-col gap-2">
               <Button
                 href={siteConfig.contact.whatsappUrl}
                 isExternal

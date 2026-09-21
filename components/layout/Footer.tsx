@@ -95,6 +95,12 @@ export function Footer() {
                   Histórico Enterprise
                 </Link>
               </li>
+              <li className="pt-1 border-t border-slate-800/80">
+                <Link href="/suporte/login" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-medium">
+                  <span>Área do Cliente (Chamados)</span>
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </li>
             </ul>
           </div>
 
