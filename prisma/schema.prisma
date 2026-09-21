@@ -31,6 +31,37 @@ enum IncidentOrigin {
   OUTROS
 }
 
+enum ContractStatus {
+  ATIVO
+  SUSPENSO
+  CANCELADO
+  FINALIZADO
+}
+
+enum ReceivableStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+enum PaymentMethod {
+  PIX
+  BOLETO
+  TRANSFERENCIA
+  CARTAO
+  OUTRO
+}
+
+enum ProposalStatus {
+  RASCUNHO
+  ENVIADA
+  EM_NEGOCIACAO
+  APROVADA
+  RECUSADA
+  EXPIRADA
+}
+
 model User {
   id             String      @id @default(cuid())
   name           String
@@ -45,8 +76,11 @@ model User {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  tickets Ticket[]
-  apiKeys ApiKey[]
+  tickets     Ticket[]
+  apiKeys     ApiKey[]
+  contracts   ClientContract[]
+  receivables ClientReceivable[]
+  proposals   ClientProposal[]
 
   @@map("users")
 }
@@ -124,4 +158,68 @@ model TicketAttachment {
   createdAt  DateTime @default(now())
 
   @@map("ticket_attachments")
+}
+
+model ClientContract {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contractNumber String?
+  title          String
+  monthlyValue   Float          @default(0)
+  billingDay     Int            @default(10)
+  startDate      DateTime       @default(now())
+  endDate        DateTime?
+  status         ContractStatus @default(ATIVO)
+  notes          String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  receivables ClientReceivable[]
+
+  @@index([userId, status])
+  @@map("client_contracts")
+}
+
+model ClientReceivable {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contractId    String?
+  contract      ClientContract?  @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  description   String
+  competence    String           // e.g. "2026-09"
+  amount        Float
+  dueDate       DateTime
+  paidDate      DateTime?
+  paymentMethod PaymentMethod    @default(PIX)
+  status        ReceivableStatus @default(PENDENTE)
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([userId, status])
+  @@index([competence])
+  @@map("client_receivables")
+}
+
+model ClientProposal {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proposalNumber   String
+  title            String
+  scopeDescription String         @db.Text
+  oneOffValue      Float          @default(0)
+  monthlyValue     Float          @default(0)
+  sentDate         DateTime       @default(now())
+  validUntil       DateTime?
+  status           ProposalStatus @default(ENVIADA)
+  documentUrl      String?
+  notes            String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@map("client_proposals")
 }
