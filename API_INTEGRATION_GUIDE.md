@@ -1,7 +1,7 @@
 # Guia de Integração — API de Ingestão de Incidentes & Telemetria
 **LTI Sistemas — Central de Suporte & Telemetria Automatizada**
 
-Este documento contém a documentação completa dos endpoints e exemplos de código prontos para copiar e colar em **cURL, PHP Puro, Laravel, Python e Next.js/TypeScript**, permitindo que seus sistemas reportem erros, exceções não tratadas e telemetria de incidentes de forma automática.
+Este documento contém a documentação completa dos endpoints e exemplos de código prontos para copiar e colar em **cURL, PHP Puro, Laravel, Python, Next.js/TypeScript, Angular Puro e Angular com DevExpress (DevExtreme)**, permitindo que seus sistemas reportem erros, exceções não tratadas e telemetria de incidentes de forma automática.
 
 ---
 
@@ -619,6 +619,385 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       );
     }
     return this.props.children;
+  }
+}
+```
+
+---
+
+### 4.6. Angular Puro (Vanilla Angular — Standalone & NgModule)
+
+Integração padrão para projetos Angular (versões 15, 16, 17, 18 e 19+), com captura automática de crashes globais via `ErrorHandler` e serviço injetável para chamadas manuais.
+
+#### 1. Serviço de Telemetria (`src/app/core/services/lti-telemetry.service.ts`):
+
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
+
+export interface LtiIncidentPayload {
+  title: string;
+  screenName: string;
+  description: string;
+  origin?: 'FRONT' | 'BACK' | 'INFRA' | 'EVENT' | 'OUTROS';
+  errorLog?: string;
+  payload?: any;
+  sourceUrl?: string;
+  targetUrl?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class LtiTelemetryService {
+  private http = inject(HttpClient);
+
+  // Configure a URL da API e seu Token da LTI Sistemas
+  private readonly apiUrl = 'https://ltisistemas.vercel.app/api/v1/incidents';
+  private readonly apiKey = 'lti_live_SEU_TOKEN_AQUI'; // Ou carregue via environment.ts
+
+  /**
+   * Envia um incidente para a API da LTI Sistemas de forma assíncrona e não bloqueante.
+   */
+  reportIncident(data: LtiIncidentPayload): Observable<any> {
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'x-api-key': this.apiKey
+    });
+
+    const body = {
+      ...data,
+      origin: data.origin || 'FRONT',
+      sourceUrl: data.sourceUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
+      occurredAt: new Date().toISOString()
+    };
+
+    return this.http.post(this.apiUrl, body, { headers }).pipe(
+      timeout(4000),
+      catchError((error) => {
+        console.error('[LTI Telemetry] Falha ao enviar telemetria de erro:', error);
+        return of(null);
+      })
+    );
+  }
+}
+```
+
+#### 2. Tratamento Global de Exceções (`src/app/core/handlers/global-error-handler.ts`):
+
+```typescript
+import { ErrorHandler, Injectable, Injector, NgZone } from '@angular/core';
+import { Location } from '@angular/common';
+import { LtiTelemetryService } from '../services/lti-telemetry.service';
+
+@Injectable()
+export class GlobalErrorHandler implements ErrorHandler {
+  constructor(private injector: Injector) {}
+
+  handleError(error: any): void {
+    const telemetry = this.injector.get(LtiTelemetryService);
+    const location = this.injector.get(Location);
+    const ngZone = this.injector.get(NgZone);
+
+    const message = error?.message || error?.toString() || 'Erro desconhecido no Frontend Angular';
+    const stack = error?.stack || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+    const currentPath = location ? location.path() : (typeof window !== 'undefined' ? window.location.pathname : '');
+
+    // Executa fora da zona do Angular para não disparar ciclos desnecessários de Change Detection
+    ngZone.runOutsideAngular(() => {
+      telemetry.reportIncident({
+        title: `Crash Angular Frontend: ${message.slice(0, 100)}`,
+        screenName: currentPath || 'Angular App',
+        description: message,
+        origin: 'FRONT',
+        errorLog: stack,
+        sourceUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        payload: {
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+          time: new Date().toISOString()
+        }
+      }).subscribe();
+    });
+
+    // Mantém o log original no console para ferramentas de debug
+    console.error('[GlobalErrorHandler]', error);
+  }
+}
+```
+
+#### 3. Configuração do Provedor:
+
+**Para Angular Standalone (`src/app/app.config.ts`):**
+```typescript
+import { ApplicationConfig, ErrorHandler, provideZoneChangeDetection } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { GlobalErrorHandler } from './core/handlers/global-error-handler';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideHttpClient(),
+    { provide: ErrorHandler, useClass: GlobalErrorHandler }
+  ]
+};
+```
+
+**Para Angular Classic com Módulos (`src/app/app.module.ts`):**
+```typescript
+import { NgModule, ErrorHandler } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
+import { AppComponent } from './app.component';
+import { GlobalErrorHandler } from './core/handlers/global-error-handler';
+
+@NgModule({
+  declarations: [AppComponent],
+  imports: [BrowserModule, HttpClientModule],
+  providers: [
+    { provide: ErrorHandler, useClass: GlobalErrorHandler }
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}
+```
+
+#### 4. Uso Manual em Componentes ou Serviços:
+
+```typescript
+import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { catchError, of } from 'rxjs';
+import { LtiTelemetryService } from '../core/services/lti-telemetry.service';
+
+@Component({
+  selector: 'app-checkout',
+  template: `<button (click)="finalizarCompra()">Finalizar Compra</button>`
+})
+export class CheckoutComponent {
+  private http = inject(HttpClient);
+  private telemetry = inject(LtiTelemetryService);
+
+  finalizarCompra() {
+    const pedidoPayload = { orderId: 1042, total: 350.00 };
+
+    this.http.post('/api/checkout', pedidoPayload).pipe(
+      catchError((error) => {
+        // Reporta manualmente o erro com detalhes específicos da tela
+        this.telemetry.reportIncident({
+          title: `Falha no Checkout do Pedido #${pedidoPayload.orderId}`,
+          screenName: 'Tela de Checkout',
+          description: error.message || 'Erro ao processar pagamento do checkout',
+          origin: 'FRONT',
+          errorLog: error.error?.message || JSON.stringify(error),
+          payload: pedidoPayload,
+          targetUrl: '/api/checkout'
+        }).subscribe();
+
+        return of(null);
+      })
+    ).subscribe();
+  }
+}
+```
+
+---
+
+### 4.7. Angular com DevExpress (DevExtreme)
+
+Integração especializada para projetos Angular utilizando o ecossistema **DevExtreme (DevExpress)** — incluindo DataGrids, CustomStores remotas e notificações toast de erro (`notify`).
+
+#### 1. Serviço Adaptador DevExtreme (`src/app/shared/services/dx-telemetry.service.ts`):
+
+```typescript
+import { Injectable, inject } from '@angular/core';
+import { LtiTelemetryService } from '../../core/services/lti-telemetry.service';
+import notify from 'devextreme/ui/notify';
+import config from 'devextreme/core/config';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DxTelemetryService {
+  private telemetry = inject(LtiTelemetryService);
+
+  /**
+   * Configura o manipulador global de erros dos componentes DevExtreme.
+   * Chame este método no ngOnInit do AppComponent ou no inicializador da aplicação.
+   */
+  initDevExtremeErrorHandler(): void {
+    config({
+      errorHandler: (e: any) => {
+        const message = e?.message || 'Erro interno nos componentes DevExtreme';
+
+        this.telemetry.reportIncident({
+          title: `DevExtreme UI Error: ${message.slice(0, 100)}`,
+          screenName: window.location.pathname,
+          description: message,
+          origin: 'FRONT',
+          errorLog: e?.stack || (typeof e === 'object' ? JSON.stringify(e) : String(e)),
+          sourceUrl: window.location.href
+        }).subscribe();
+
+        notify({
+          message: 'Ocorreu um erro na interface. O incidente foi registrado para o suporte.',
+          type: 'error',
+          displayTime: 4000,
+          position: 'bottom right'
+        });
+      }
+    });
+  }
+
+  /**
+   * Trata falhas de carregamento ou mutação em DataGrids e CustomStores
+   */
+  handleStoreError(gridName: string, action: 'LOAD' | 'INSERT' | 'UPDATE' | 'DELETE', error: any, targetUrl?: string): void {
+    const errorMsg = error?.message || error?.statusText || 'Falha ao comunicar com o servidor de dados';
+
+    this.telemetry.reportIncident({
+      title: `Erro DevExtreme DataGrid [${gridName}] - ${action}`,
+      screenName: gridName,
+      description: `Falha na operação ${action} do Grid: ${errorMsg}`,
+      origin: 'FRONT',
+      errorLog: error?.error ? JSON.stringify(error.error) : (error?.stack || String(error)),
+      targetUrl: targetUrl,
+      sourceUrl: window.location.href,
+      payload: {
+        grid: gridName,
+        action: action,
+        httpStatus: error?.status,
+        httpStatusText: error?.statusText
+      }
+    }).subscribe();
+
+    notify({
+      message: `Não foi possível carregar os registros (${action}). Suporte notificado.`,
+      type: 'warning',
+      displayTime: 5000,
+      position: 'top center'
+    });
+  }
+}
+```
+
+#### 2. Exemplo com `dx-data-grid` e `CustomStore` (`src/app/pages/clientes-grid/clientes-grid.component.ts`):
+
+```typescript
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { DxDataGridModule } from 'devextreme-angular';
+import CustomStore from 'devextreme/data/custom_store';
+import { lastValueFrom } from 'rxjs';
+import { DxTelemetryService } from '../../shared/services/dx-telemetry.service';
+
+@Component({
+  selector: 'app-clientes-grid',
+  standalone: true,
+  imports: [CommonModule, DxDataGridModule],
+  template: `
+    <div class="grid-card p-4">
+      <h2 class="text-xl font-bold mb-4">Gestão de Clientes (DevExtreme + LTI Telemetria)</h2>
+
+      <dx-data-grid
+        [dataSource]="dataSource"
+        [showBorders]="true"
+        [remoteOperations]="true"
+        [rowAlternationEnabled]="true"
+        (onDataErrorOccurred)="onDataErrorOccurred($event)">
+
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-search-panel [visible]="true" placeholder="Pesquisar cliente..."></dxo-search-panel>
+        <dxo-paging [pageSize]="15"></dxo-paging>
+        <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 15, 30, 50]" [showInfo]="true"></dxo-pager>
+
+        <dxi-column dataField="id" caption="Código" [width]="90"></dxi-column>
+        <dxi-column dataField="nome" caption="Nome / Razão Social"></dxi-column>
+        <dxi-column dataField="cnpj" caption="CNPJ / CPF" [width]="180"></dxi-column>
+        <dxi-column dataField="cidade" caption="Cidade / UF"></dxi-column>
+        <dxi-column dataField="status" caption="Status" [width]="120"></dxi-column>
+      </dx-data-grid>
+    </div>
+  `
+})
+export class ClientesGridComponent implements OnInit {
+  private http = inject(HttpClient);
+  private dxTelemetry = inject(DxTelemetryService);
+
+  dataSource!: CustomStore;
+  private readonly apiUrl = 'https://api.suaempresa.com.br/v1/clientes';
+
+  ngOnInit(): void {
+    // Criação da CustomStore DevExtreme com captura resiliente de erros
+    this.dataSource = new CustomStore({
+      key: 'id',
+      load: async (loadOptions) => {
+        try {
+          let params = new HttpParams()
+            .set('skip', (loadOptions.skip || 0).toString())
+            .set('take', (loadOptions.take || 15).toString());
+
+          if (loadOptions.searchValue) {
+            params = params.set('search', String(loadOptions.searchValue));
+          }
+
+          const response: any = await lastValueFrom(
+            this.http.get(this.apiUrl, { params })
+          );
+
+          return {
+            data: response.data || [],
+            totalCount: response.totalCount || 0
+          };
+        } catch (error: any) {
+          // Reporta telemetria automática na LTI Sistemas
+          this.dxTelemetry.handleStoreError('ClientesGridComponent', 'LOAD', error, this.apiUrl);
+          throw error; // Permite ao DevExtreme gerenciar o estado visual do erro
+        }
+      },
+      insert: async (values) => {
+        try {
+          return await lastValueFrom(this.http.post(this.apiUrl, values));
+        } catch (error: any) {
+          this.dxTelemetry.handleStoreError('ClientesGridComponent', 'INSERT', error, this.apiUrl);
+          throw error;
+        }
+      },
+      remove: async (key) => {
+        try {
+          return await lastValueFrom(this.http.delete(`${this.apiUrl}/${key}`));
+        } catch (error: any) {
+          this.dxTelemetry.handleStoreError('ClientesGridComponent', 'DELETE', error, `${this.apiUrl}/${key}`);
+          throw error;
+        }
+      }
+    });
+  }
+
+  onDataErrorOccurred(e: any): void {
+    console.warn('[DevExtreme Grid] Evento onDataErrorOccurred disparado:', e.error);
+  }
+}
+```
+
+#### 3. Inicialização no Componente Raiz (`src/app/app.component.ts`):
+
+```typescript
+import { Component, OnInit, inject } from '@angular/core';
+import { DxTelemetryService } from './shared/services/dx-telemetry.service';
+
+@Component({
+  selector: 'app-root',
+  template: `<router-outlet></router-outlet>`
+})
+export class AppComponent implements OnInit {
+  private dxTelemetry = inject(DxTelemetryService);
+
+  ngOnInit(): void {
+    // Inicializa o interceptor de erros global do DevExtreme
+    this.dxTelemetry.initDevExtremeErrorHandler();
   }
 }
 ```
