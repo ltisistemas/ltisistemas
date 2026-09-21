@@ -12,9 +12,13 @@ export interface SessionPayload {
 }
 
 const COOKIE_NAME = "lti_session";
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "lti-sistemas-secure-jwt-session-secret-key-2026-very-safe"
-);
+
+function getSecretKey() {
+  const secret =
+    process.env.AUTH_SECRET ||
+    "lti-sistemas-secure-jwt-session-secret-key-2026-very-safe";
+  return new Uint8Array(Buffer.from(secret, "utf-8"));
+}
 
 /**
  * Signs a session payload into a JWT string.
@@ -24,7 +28,7 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(SECRET_KEY);
+    .sign(getSecretKey());
 }
 
 /**
@@ -32,7 +36,7 @@ export async function signSession(payload: SessionPayload): Promise<string> {
  */
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { payload } = await jwtVerify(token, getSecretKey());
     return {
       userId: payload.userId as string,
       name: payload.name as string,
