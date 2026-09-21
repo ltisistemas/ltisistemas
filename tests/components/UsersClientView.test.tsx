@@ -48,7 +48,7 @@ describe("components/suporte/UsersClientView", () => {
   it("should render users list table with systemUrl and status", () => {
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    expect(screen.getByText("Gestão de Usuários")).toBeInTheDocument();
+    expect(screen.getByText(/Gestão de Usuários/i)).toBeInTheDocument();
     expect(screen.getByText("Cliente Alpha")).toBeInTheDocument();
     expect(screen.getByText("alpha@empresa.com")).toBeInTheDocument();
     expect(screen.getByText("alpha.com")).toBeInTheDocument();

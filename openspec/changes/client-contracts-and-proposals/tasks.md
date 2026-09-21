@@ -10,11 +10,11 @@
 
 ## 3. Componentes e Interface Client 360° no Suporte
 
-- [ ] 3.1 Criar os modais auxiliares com máscara monetária e validação: `components/suporte/CreateContractModal.tsx`, `components/suporte/CreateReceivableModal.tsx` e `components/suporte/CreateProposalModal.tsx`
-- [ ] 3.2 Criar `components/suporte/ClientCommercialModal.tsx` com visão 360° do cliente (cards de MRR Ativo, Total Recebido, Faturas Abertas/Atrasadas e abas de Contratos, Recebíveis e Propostas Comerciais)
-- [ ] 3.3 Atualizar `components/suporte/UsersClientView.tsx` com card de MRR Total da Carteira no topo, badges de valor mensal por cliente na tabela e botão de acesso à Gestão Comercial
+- [x] 3.1 Criar os modais auxiliares com máscara monetária e validação: `components/suporte/CreateContractModal.tsx`, `components/suporte/CreateReceivableModal.tsx` e `components/suporte/CreateProposalModal.tsx`
+- [x] 3.2 Criar `components/suporte/ClientCommercialModal.tsx` com visão 360° do cliente (cards de MRR Ativo, Total Recebido, Faturas Abertas/Atrasadas e abas de Contratos, Recebíveis e Propostas Comerciais)
+- [x] 3.3 Atualizar `components/suporte/UsersClientView.tsx` com card de MRR Total da Carteira no topo, badges de valor mensal por cliente na tabela e botão de acesso à Gestão Comercial
 
 ## 4. Testes Automatizados e Validação
 
-- [ ] 4.1 Criar testes de interface em `tests/components/ClientCommercialModal.test.tsx` e atualizar `tests/components/UsersClientView.test.tsx`
-- [ ] 4.2 Executar suite completa de testes (`npm test`) e o build de produção (`npm run build`) garantindo integridade e conformidade de tipos
+- [x] 4.1 Criar testes de interface em `tests/components/ClientCommercialModal.test.tsx` e atualizar `tests/components/UsersClientView.test.tsx`
+- [x] 4.2 Executar suite completa de testes (`npm test`) e o build de produção (`npm run build`) garantindo integridade e conformidade de tipos

@@ -17,12 +17,19 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Briefcase,
+  TrendingUp,
+  DollarSign,
+  Receipt,
+  FileText,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import { SupportHeader } from "./SupportHeader";
 import { CreateUserModal } from "./CreateUserModal";
 import { ResetPasswordModal } from "./ResetPasswordModal";
+import { ClientCommercialModal } from "./ClientCommercialModal";
 import { deleteUserAction, toggleUserStatusAction } from "@/lib/actions/auth-actions";
+import { PortfolioSummaryData } from "@/lib/actions/commercial-actions";
 import { Role, UserStatus } from "@prisma/client";
 
 interface UserItem {
@@ -41,16 +48,24 @@ interface UserItem {
 interface UsersClientViewProps {
   user: SessionPayload;
   initialUsers: UserItem[];
+  initialPortfolio?: PortfolioSummaryData | null;
 }
 
-export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
+export function UsersClientView({
+  user,
+  initialUsers,
+  initialPortfolio,
+}: UsersClientViewProps) {
   const router = useRouter();
   const [usersList, setUsersList] = useState<UserItem[]>(initialUsers);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [resetPasswordTargetUser, setResetPasswordTargetUser] = useState<UserItem | null>(null);
+  const [commercialTargetUser, setCommercialTargetUser] = useState<UserItem | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
+
+  const clientMrrMap = initialPortfolio?.clientMrrMap || {};
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -93,7 +108,11 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
   };
 
   const handleDeleteUser = async (targetUser: UserItem) => {
-    if (!confirm(`Deseja realmente desativar e excluir o usuário "${targetUser.name}"? Seus chamados anteriores serão preservados no histórico.`)) {
+    if (
+      !confirm(
+        `Deseja realmente desativar e excluir o usuário "${targetUser.name}"? Seus chamados anteriores serão preservados no histórico.`
+      )
+    ) {
       return;
     }
 
@@ -114,14 +133,21 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
     }
   };
 
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(val || 0);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-900 flex flex-col">
       <SupportHeader user={user} activeTab="usuarios" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Feedback notification toast / banner */}
         {feedbackMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-[#d1e7dd] border border-[#badbcc] text-[#0f5132] text-xs flex items-center justify-between animate-fadeIn shadow-xs">
+          <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-[#0f5132] text-xs flex items-center justify-between animate-fadeIn shadow-xs">
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-[#198754] shrink-0" />
               <span className="font-semibold">{feedbackMessage}</span>
@@ -139,13 +165,13 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2.5">
-              <span>Gestão de Usuários</span>
+              <span>Gestão de Usuários & Contratos</span>
               <span className="text-xs font-semibold text-gray-600 bg-gray-200 px-2.5 py-1 rounded-full">
                 {usersList.length} cadastrados
               </span>
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Controle de acessos, status (ATIVO/INATIVO), redefinição de senhas e sistemas vinculados.
+              Controle de acessos, contratos de sustentação, faturas recorrentes (MRR) e propostas comerciais.
             </p>
           </div>
 
@@ -157,6 +183,63 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
             <span>Cadastrar Novo Usuário</span>
           </button>
         </div>
+
+        {/* KPIs Comerciais da Carteira (Visão Suporte) */}
+        {initialPortfolio && (
+          <div className="my-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-blue-700 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>MRR Total Carteira</span>
+                <TrendingUp className="w-4 h-4 text-[#0d6efd]" />
+              </div>
+              <div className="text-2xl font-black text-[#0d6efd]">
+                {formatCurrency(initialPortfolio.totalMrr)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">
+                {initialPortfolio.totalClientsWithContracts} cliente(s) com contrato ativo
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-green-700 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Faturas Liquidadas</span>
+                <CheckCircle2 className="w-4 h-4 text-[#198754]" />
+              </div>
+              <div className="text-2xl font-black text-[#198754]">
+                {formatCurrency(initialPortfolio.totalPaidReceivables)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">
+                recebimentos confirmados
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-amber-700 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Faturas em Aberto</span>
+                <Receipt className="w-4 h-4 text-[#ffc107]" />
+              </div>
+              <div className="text-2xl font-black text-amber-600">
+                {formatCurrency(initialPortfolio.totalPendingReceivables)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">
+                pendentes de liquidação
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between text-cyan-700 text-xs font-bold uppercase tracking-wider mb-1">
+                <span>Propostas Ativas</span>
+                <Briefcase className="w-4 h-4 text-[#0dcaf0]" />
+              </div>
+              <div className="text-2xl font-black text-gray-900">
+                {initialPortfolio.totalActiveProposals}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">
+                em negociação comercial
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="my-6">
@@ -188,6 +271,9 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                     Empresa / Contrato
                   </th>
                   <th scope="col" className="py-3.5 px-4">
+                    MRR Contratual
+                  </th>
+                  <th scope="col" className="py-3.5 px-4">
                     Site / Sistema
                   </th>
                   <th scope="col" className="py-3.5 px-4 text-center">
@@ -207,120 +293,149 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
               <tbody className="divide-y divide-gray-200">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-gray-400">
+                    <td colSpan={9} className="py-12 text-center text-gray-400">
                       Nenhum usuário encontrado com os filtros aplicados.
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u) => (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-gray-50/80 transition-colors"
-                    >
-                      <td className="py-3.5 px-4 font-semibold text-gray-900">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#0d6efd] flex items-center justify-center font-bold text-xs">
-                            {u.name.charAt(0).toUpperCase()}
+                  filteredUsers.map((u) => {
+                    const clientMrr = clientMrrMap[u.id] || 0;
+
+                    return (
+                      <tr
+                        key={u.id}
+                        className="hover:bg-gray-50/80 transition-colors"
+                      >
+                        <td className="py-3.5 px-4 font-semibold text-gray-900">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#0d6efd] flex items-center justify-center font-bold text-xs">
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span>{u.name}</span>
                           </div>
-                          <span>{u.name}</span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-gray-600 font-mono text-[11px]">
-                        {u.email}
-                      </td>
+                        <td className="py-3.5 px-4 text-gray-600 font-mono text-[11px]">
+                          {u.email}
+                        </td>
 
-                      <td className="py-3.5 px-4 text-gray-700">
-                        <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 text-gray-400" />
-                          <span>{u.company}</span>
-                          {u.contractNumber && (
-                            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                              {u.contractNumber}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-gray-700">
-                        {u.systemUrl ? (
-                          <div className="flex items-center gap-1.5 text-[#0d6efd]">
-                            <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            {u.systemUrl.startsWith("http") ? (
-                              <a
-                                href={u.systemUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline truncate max-w-[150px] inline-block"
-                              >
-                                {u.systemUrl.replace(/^https?:\/\//, "")}
-                              </a>
-                            ) : (
-                              <span className="truncate max-w-[150px]">{u.systemUrl}</span>
+                        <td className="py-3.5 px-4 text-gray-700">
+                          <div className="flex items-center gap-1.5">
+                            <Building className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{u.company}</span>
+                            {u.contractNumber && (
+                              <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                {u.contractNumber}
+                              </span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => handleToggleStatus(u)}
-                          disabled={actionUserId === u.id}
-                          title={`Clique para alternar status (${u.status})`}
-                          className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-all ${
-                            u.status === "ATIVO"
-                              ? "bg-[#d1e7dd] text-[#0f5132] border-[#badbcc] hover:bg-green-200"
-                              : "bg-[#f8d7da] text-[#842029] border-[#f5c2c7] hover:bg-red-200"
-                          }`}
-                        >
-                          {u.status === "ATIVO" ? "ATIVO" : "INATIVO"}
-                        </button>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            u.role === Role.SUPORTE
-                              ? "bg-blue-50 text-[#0d6efd] border-blue-200"
-                              : "bg-green-50 text-[#198754] border-green-200"
-                          }`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="font-semibold text-gray-900">
-                          {u.ticketsCount}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => setResetPasswordTargetUser(u)}
-                            title={`Redefinir senha de ${u.name}`}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#b58105] hover:bg-yellow-50 transition-colors"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                          </button>
-
-                          {u.id !== user.userId && (
-                            <button
-                              onClick={() => handleDeleteUser(u)}
-                              disabled={actionUserId === u.id}
-                              title="Desativar e excluir cliente (Soft-delete)"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#dc3545] hover:bg-red-50 transition-colors disabled:opacity-50"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                        <td className="py-3.5 px-4">
+                          {u.role === Role.CLIENTE ? (
+                            clientMrr > 0 ? (
+                              <span className="font-bold text-[#0d6efd] text-xs px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200">
+                                {formatCurrency(clientMrr)}/mês
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-[11px]">—</span>
+                            )
+                          ) : (
+                            <span className="text-gray-400 text-[11px]">Suporte</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+
+                        <td className="py-3.5 px-4 text-gray-700">
+                          {u.systemUrl ? (
+                            <div className="flex items-center gap-1.5 text-[#0d6efd]">
+                              <Globe className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              {u.systemUrl.startsWith("http") ? (
+                                <a
+                                  href={u.systemUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:underline truncate max-w-[150px] inline-block"
+                                >
+                                  {u.systemUrl.replace(/^https?:\/\//, "")}
+                                </a>
+                              ) : (
+                                <span className="truncate max-w-[150px]">{u.systemUrl}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            disabled={actionUserId === u.id}
+                            title={`Clique para alternar status (${u.status})`}
+                            className={`inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border transition-all ${
+                              u.status === "ATIVO"
+                                ? "bg-[#d1e7dd] text-[#0f5132] border-[#badbcc] hover:bg-green-200"
+                                : "bg-[#f8d7da] text-[#842029] border-[#f5c2c7] hover:bg-red-200"
+                            }`}
+                          >
+                            {u.status === "ATIVO" ? "ATIVO" : "INATIVO"}
+                          </button>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          <span
+                            className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              u.role === Role.SUPORTE
+                                ? "bg-blue-50 text-[#0d6efd] border-blue-200"
+                                : "bg-green-50 text-[#198754] border-green-200"
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="font-semibold text-gray-900">
+                            {u.ticketsCount}
+                          </span>
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {u.role === Role.CLIENTE && (
+                              <button
+                                onClick={() => setCommercialTargetUser(u)}
+                                title={`Gestão Comercial, Contratos e Recebíveis de ${u.company || u.name}`}
+                                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#0d6efd] border border-blue-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                              >
+                                <Briefcase className="w-3.5 h-3.5" />
+                                <span>Comercial</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => setResetPasswordTargetUser(u)}
+                              title={`Redefinir senha de ${u.name}`}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#b58105] hover:bg-yellow-50 transition-colors"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+
+                            {u.id !== user.userId && (
+                              <button
+                                onClick={() => handleDeleteUser(u)}
+                                disabled={actionUserId === u.id}
+                                title="Desativar e excluir cliente (Soft-delete)"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-[#dc3545] hover:bg-red-50 transition-colors disabled:opacity-50"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -344,6 +459,20 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
           setTimeout(() => setFeedbackMessage(null), 5000);
         }}
       />
+
+      {commercialTargetUser && (
+        <ClientCommercialModal
+          isOpen={!!commercialTargetUser}
+          onClose={() => {
+            setCommercialTargetUser(null);
+            router.refresh();
+          }}
+          clientId={commercialTargetUser.id}
+          clientName={commercialTargetUser.name}
+          clientCompany={commercialTargetUser.company}
+          clientEmail={commercialTargetUser.email}
+        />
+      )}
     </div>
   );
 }
