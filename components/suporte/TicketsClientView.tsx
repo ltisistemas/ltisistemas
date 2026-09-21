@@ -53,7 +53,7 @@ export function TicketsClientView({
   const [searchQuery, setSearchQuery] = useState("");
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [successModalInfo, setSuccessModalInfo] = useState<{ id: string; ticketNumber: number } | null>(null);
+  const [successModalInfo, setSuccessModalInfo] = useState<{ id: string; ticketNumber: number; code: string } | null>(null);
 
   const isSupport = user.role === "SUPORTE";
 
@@ -74,6 +74,7 @@ export function TicketsClientView({
         ticket.description.toLowerCase().includes(q) ||
         (ticket.screenName && ticket.screenName.toLowerCase().includes(q)) ||
         ticket.ticketNumber.toString().includes(q) ||
+        (ticket.code && ticket.code.toLowerCase().includes(q)) ||
         ticket.user.name.toLowerCase().includes(q) ||
         ticket.user.company.toLowerCase().includes(q) ||
         (ticket.user.systemUrl && ticket.user.systemUrl.toLowerCase().includes(q)) ||
@@ -84,8 +85,8 @@ export function TicketsClientView({
     });
   }, [tickets, statusFilter, clientFilter, searchQuery]);
 
-  const handleTicketCreated = (newTicketId: string, ticketNumber: number) => {
-    setSuccessModalInfo({ id: newTicketId, ticketNumber });
+  const handleTicketCreated = (newTicketId: string, ticketNumber: number, ticketCode: string) => {
+    setSuccessModalInfo({ id: newTicketId, ticketNumber, code: ticketCode });
     router.refresh();
   };
 
@@ -340,9 +341,9 @@ export function TicketsClientView({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3.5">
-                    {/* Ticket Number Badge */}
+                    {/* Ticket Hash Badge */}
                     <div className="shrink-0 font-mono text-xs font-bold text-[#0d6efd] bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg">
-                      #{ticket.ticketNumber}
+                      {ticket.code}
                     </div>
 
                     <div className="flex flex-col">
@@ -437,6 +438,7 @@ export function TicketsClientView({
         <TicketSuccessModal
           isOpen={!!successModalInfo}
           ticketNumber={successModalInfo.ticketNumber}
+          ticketCode={successModalInfo.code}
           ticketId={successModalInfo.id}
           onClose={() => setSuccessModalInfo(null)}
           onViewTicket={(id) => {

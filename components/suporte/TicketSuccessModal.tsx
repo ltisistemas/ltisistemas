@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Copy, Check, X, ArrowRight } from "lucide-react";
+import { CheckCircle2, Copy, Check, X, ArrowRight, Hash } from "lucide-react";
+import { formatTicketCode } from "@/lib/utils/ticket-code";
 
 interface TicketSuccessModalProps {
   isOpen: boolean;
-  ticketNumber: number;
+  ticketNumber?: number;
+  ticketCode?: string;
   ticketId?: string;
   onClose: () => void;
   onViewTicket?: (ticketId: string) => void;
@@ -14,6 +16,7 @@ interface TicketSuccessModalProps {
 export default function TicketSuccessModal({
   isOpen,
   ticketNumber,
+  ticketCode,
   ticketId,
   onClose,
   onViewTicket,
@@ -22,12 +25,16 @@ export default function TicketSuccessModal({
 
   if (!isOpen) return null;
 
-  const formattedTicketCode = `#${ticketNumber}`;
+  const displayCode =
+    ticketCode ||
+    (ticketNumber !== undefined
+      ? formatTicketCode({ ticketNumber })
+      : formatTicketCode({}));
 
   const handleCopy = async () => {
     try {
       if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(formattedTicketCode);
+        await navigator.clipboard.writeText(displayCode);
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -44,7 +51,7 @@ export default function TicketSuccessModal({
       aria-modal="true"
       aria-labelledby="modal-success-title"
     >
-      <div className="relative w-full max-w-md bg-white border border-gray-200 rounded-2xl p-6 shadow-2xl text-center">
+      <div className="relative w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-6 shadow-2xl text-center">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -64,41 +71,44 @@ export default function TicketSuccessModal({
           Chamado Aberto com Sucesso!
         </h3>
         <p className="text-sm text-gray-600 mb-5">
-          O chamado foi registrado na fila de atendimento com SLA inicial de 6 horas para análise.
+          O incidente foi registrado na fila técnica com SLA inicial de 6 horas para análise.
         </p>
 
-        {/* Ticket Code Box */}
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 flex items-center justify-between gap-3">
-          <div className="text-left">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">
-              Número do Incidente
+        {/* Ticket Hash Code Box */}
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 text-left space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+              <Hash className="w-3.5 h-3.5 text-[#0d6efd]" />
+              Hash do Incidente
             </span>
-            <span className="text-2xl font-extrabold text-[#0d6efd] font-mono tracking-tight">
-              {formattedTicketCode}
-            </span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shadow-xs ${
+                copied
+                  ? "bg-[#198754] text-white hover:bg-[#157347]"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-white" />
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-gray-600" />
+                  Copiar Código
+                </>
+              )}
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all shadow-sm ${
-              copied
-                ? "bg-[#198754] text-white hover:bg-[#157347]"
-                : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-white" />
-                Copiado!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 text-gray-600" />
-                Copiar Código
-              </>
-            )}
-          </button>
+          <div className="p-3 bg-white border border-gray-200 rounded-lg">
+            <span className="text-sm sm:text-base font-extrabold text-[#0d6efd] font-mono tracking-tight select-all break-all block text-center sm:text-left">
+              {displayCode}
+            </span>
+          </div>
         </div>
 
         {/* Action Buttons */}

@@ -4,6 +4,7 @@ import { prisma } from "../db/prisma";
 import { requireSession } from "../auth/session";
 import { TicketStatus } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
+import { formatTicketCode } from "../utils/ticket-code";
 
 export interface AttachmentInput {
   fileName: string;
@@ -14,6 +15,7 @@ export interface AttachmentInput {
 export interface TicketSummary {
   id: string;
   ticketNumber: number;
+  code: string;
   title: string;
   description: string;
   screenName: string;
@@ -58,7 +60,7 @@ export async function createTicketAction(data: {
   screenName: string;
   targetUserId?: string;
   attachments?: AttachmentInput[];
-}): Promise<ActionResult<{ id: string; ticketNumber: number; slaDueAt: Date }>> {
+}): Promise<ActionResult<{ id: string; ticketNumber: number; code: string; slaDueAt: Date }>> {
   try {
     const session = await requireSession();
 
@@ -123,6 +125,7 @@ export async function createTicketAction(data: {
         id: true,
         ticketNumber: true,
         slaDueAt: true,
+        createdAt: true,
       },
     });
 
@@ -131,6 +134,7 @@ export async function createTicketAction(data: {
       data: {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
+        code: formatTicketCode(ticket),
         slaDueAt: ticket.slaDueAt,
       },
     };
@@ -201,6 +205,7 @@ export async function getTicketsAction(
     const formattedTickets: TicketSummary[] = tickets.map((t) => ({
       id: t.id,
       ticketNumber: t.ticketNumber,
+      code: formatTicketCode(t),
       title: t.title,
       description: t.description,
       screenName: t.screenName,
@@ -282,6 +287,7 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
       data: {
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
+        code: formatTicketCode(ticket),
         title: ticket.title,
         description: ticket.description,
         screenName: ticket.screenName,

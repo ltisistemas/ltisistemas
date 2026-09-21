@@ -15,7 +15,7 @@ export interface ClientOption {
 interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (newTicketId: string, ticketNumber: number) => void;
+  onSuccess: (newTicketId: string, ticketNumber: number, ticketCode: string) => void;
   userRole?: "SUPORTE" | "CLIENTE";
   clients?: ClientOption[];
 }
@@ -119,7 +119,7 @@ export function CreateTicketModal({
       setAttachments([]);
       setIsSubmitting(false);
 
-      onSuccess(res.data.id, res.data.ticketNumber);
+      onSuccess(res.data.id, res.data.ticketNumber, res.data.code);
       onClose();
     } catch (err) {
       console.error("Submit ticket error:", err);

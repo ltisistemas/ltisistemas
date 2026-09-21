@@ -151,8 +151,8 @@ export function TicketDetailClientView({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200">
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="font-mono text-sm font-bold text-[#0d6efd] bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
-                  Chamado #{ticket.ticketNumber}
+                <span className="font-mono text-xs sm:text-sm font-bold text-[#0d6efd] bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
+                  {ticket.code}
                 </span>
                 <StatusBadge status={ticket.status} size="lg" />
                 <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />

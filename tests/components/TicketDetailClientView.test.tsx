@@ -22,6 +22,7 @@ describe("components/suporte/TicketDetailClientView", () => {
   const sampleTicket: TicketDetail = {
     id: "tkt_100",
     ticketNumber: 55,
+    code: "LTI-BUG-000055-2026-09-21-14-30",
     title: "Erro crítico no banco de dados",
     screenName: "Módulo de Relatórios",
     description: "Falha de conexão intermitente ao consultar tabelas",
@@ -57,7 +58,7 @@ describe("components/suporte/TicketDetailClientView", () => {
       />
     );
 
-    expect(screen.getByText("Chamado #55")).toBeInTheDocument();
+    expect(screen.getByText("LTI-BUG-000055-2026-09-21-14-30")).toBeInTheDocument();
     expect(screen.getByText("Tela: Módulo de Relatórios")).toBeInTheDocument();
     expect(screen.getByText("Erro crítico no banco de dados")).toBeInTheDocument();
     expect(screen.getByText("João Silva")).toBeInTheDocument();

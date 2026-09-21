@@ -18,17 +18,17 @@ describe("components/suporte/TicketSuccessModal", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("should render ticket number and title when isOpen is true", () => {
+  it("should render ticket code and title when isOpen is true", () => {
     render(
       <TicketSuccessModal
         isOpen={true}
-        ticketNumber={1050}
+        ticketCode="LTI-BUG-001050-2026-09-21-15-30"
         onClose={vi.fn()}
       />
     );
 
     expect(screen.getByText("Chamado Aberto com Sucesso!")).toBeDefined();
-    expect(screen.getByText("#1050")).toBeDefined();
+    expect(screen.getByText("LTI-BUG-001050-2026-09-21-15-30")).toBeDefined();
     expect(screen.getByText("Copiar Código")).toBeDefined();
   });
 
@@ -43,7 +43,7 @@ describe("components/suporte/TicketSuccessModal", () => {
     render(
       <TicketSuccessModal
         isOpen={true}
-        ticketNumber={1050}
+        ticketCode="LTI-BUG-001050-2026-09-21-15-30"
         onClose={vi.fn()}
       />
     );
@@ -53,7 +53,7 @@ describe("components/suporte/TicketSuccessModal", () => {
       fireEvent.click(copyBtn);
     });
 
-    expect(writeTextMock).toHaveBeenCalledWith("#1050");
+    expect(writeTextMock).toHaveBeenCalledWith("LTI-BUG-001050-2026-09-21-15-30");
     expect(screen.getByText("Copiado!")).toBeDefined();
   });
 

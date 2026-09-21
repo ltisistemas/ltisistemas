@@ -42,7 +42,7 @@ describe("components/suporte/CreateTicketModal", () => {
 
     vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_123", ticketNumber: 77, slaDueAt: new Date() },
+      data: { id: "tkt_123", ticketNumber: 77, code: "LTI-BUG-000077-2026-09-21-12-00", slaDueAt: new Date() },
     });
 
     render(
@@ -65,7 +65,7 @@ describe("components/suporte/CreateTicketModal", () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(handleSuccess).toHaveBeenCalledWith("tkt_123", 77);
+      expect(handleSuccess).toHaveBeenCalledWith("tkt_123", 77, "LTI-BUG-000077-2026-09-21-12-00");
       expect(handleClose).toHaveBeenCalled();
     });
   });
@@ -140,7 +140,7 @@ describe("components/suporte/CreateTicketModal", () => {
 
     const createSpy = vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_sup_1", ticketNumber: 88, slaDueAt: new Date() },
+      data: { id: "tkt_sup_1", ticketNumber: 88, code: "LTI-BUG-000088-2026-09-21-12-00", slaDueAt: new Date() },
     });
 
     const mockClients = [
@@ -181,7 +181,7 @@ describe("components/suporte/CreateTicketModal", () => {
           targetUserId: "cli_1",
         })
       );
-      expect(handleSuccess).toHaveBeenCalledWith("tkt_sup_1", 88);
+      expect(handleSuccess).toHaveBeenCalledWith("tkt_sup_1", 88, "LTI-BUG-000088-2026-09-21-12-00");
       expect(handleClose).toHaveBeenCalled();
     });
   });

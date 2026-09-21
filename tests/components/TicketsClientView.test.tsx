@@ -18,6 +18,7 @@ describe("components/suporte/TicketsClientView", () => {
     {
       id: "tkt_1",
       ticketNumber: 101,
+      code: "LTI-BUG-000101-2026-09-21-10-00",
       title: "Erro no webhook",
       screenName: "Tela de Integrações",
       description: "Webhook não está retornando status 200",
@@ -38,6 +39,7 @@ describe("components/suporte/TicketsClientView", () => {
     {
       id: "tkt_2",
       ticketNumber: 102,
+      code: "LTI-BUG-000102-2026-09-21-11-00",
       title: "Dúvida sobre relatório",
       screenName: "Módulo Financeiro",
       description: "Como exportar para excel?",
@@ -58,6 +60,7 @@ describe("components/suporte/TicketsClientView", () => {
     {
       id: "tkt_3",
       ticketNumber: 103,
+      code: "LTI-BUG-000103-2026-09-21-12-00",
       title: "Pendente aprovação",
       screenName: "Cadastro de Produtos",
       description: "Aguardando confirmação do cliente",
@@ -97,8 +100,8 @@ describe("components/suporte/TicketsClientView", () => {
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
     expect(screen.getByText("Tela: Tela de Integrações")).toBeInTheDocument();
     expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
-    expect(screen.getByText("#101")).toBeInTheDocument();
-    expect(screen.getByText("#102")).toBeInTheDocument();
+    expect(screen.getByText("LTI-BUG-000101-2026-09-21-10-00")).toBeInTheDocument();
+    expect(screen.getByText("LTI-BUG-000102-2026-09-21-11-00")).toBeInTheDocument();
   });
 
   it("should filter tickets by search query across multiple ticket attributes", () => {
@@ -121,8 +124,8 @@ describe("components/suporte/TicketsClientView", () => {
     fireEvent.change(searchInput, { target: { value: "Integrações" } });
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
 
-    // Filter by ticket number
-    fireEvent.change(searchInput, { target: { value: "103" } });
+    // Filter by ticket number or hash code
+    fireEvent.change(searchInput, { target: { value: "LTI-BUG-000103" } });
     expect(screen.getByText("Pendente aprovação")).toBeInTheDocument();
 
     // Filter by user name
@@ -258,7 +261,7 @@ describe("components/suporte/TicketsClientView", () => {
     const ticketActions = await import("@/lib/actions/ticket-actions");
     vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_created", ticketNumber: 999 } as any,
+      data: { id: "tkt_created", ticketNumber: 999, code: "LTI-BUG-000999-2026-09-21-12-00" } as any,
     });
 
     const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
@@ -372,7 +375,7 @@ describe("components/suporte/TicketsClientView", () => {
     const ticketActions = await import("@/lib/actions/ticket-actions");
     vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_modal_1", ticketNumber: 777 } as any,
+      data: { id: "tkt_modal_1", ticketNumber: 777, code: "LTI-BUG-000777-2026-09-21-14-00" } as any,
     });
 
     const submitBtn = screen.getByRole("button", { name: /Criar Chamado/i });
@@ -380,12 +383,12 @@ describe("components/suporte/TicketsClientView", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Chamado Aberto com Sucesso!")).toBeInTheDocument();
-      expect(screen.getByText("#777")).toBeInTheDocument();
+      expect(screen.getByText("LTI-BUG-000777-2026-09-21-14-00")).toBeInTheDocument();
     });
 
     const copyBtn = screen.getByText("Copiar Código");
     fireEvent.click(copyBtn);
-    expect(writeTextMock).toHaveBeenCalledWith("#777");
+    expect(writeTextMock).toHaveBeenCalledWith("LTI-BUG-000777-2026-09-21-14-00");
   });
 });
 

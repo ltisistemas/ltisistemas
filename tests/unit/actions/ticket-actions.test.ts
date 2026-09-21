@@ -170,6 +170,7 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.id).toBe("tkt_100");
       expect(res.data?.ticketNumber).toBe(42);
+      expect(res.data?.code).toMatch(/^LTI-BUG-[A-Z0-9]{6}-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/);
       expect(res.data?.slaDueAt).toBeDefined();
     });
 
@@ -281,6 +282,7 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.success).toBe(true);
       expect(res.data?.tickets.length).toBe(1);
       expect(res.data?.tickets[0].screenName).toBe("Tela de Clientes");
+      expect(res.data?.tickets[0].code).toMatch(/^LTI-BUG-[A-Z0-9]{6}-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/);
 
       expect(findManySpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -456,6 +458,7 @@ describe("lib/actions/ticket-actions", () => {
       const res = await getTicketByIdAction("tkt_mine");
       expect(res.success).toBe(true);
       expect(res.data?.id).toBe("tkt_mine");
+      expect(res.data?.code).toMatch(/^LTI-BUG-[A-Z0-9]{6}-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/);
       expect(res.data?.screenName).toBe("Módulo Financeiro");
       expect(res.data?.attachments.length).toBe(1);
     });
