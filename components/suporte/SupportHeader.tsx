@@ -10,6 +10,7 @@ import {
   PlusCircle,
   Layers,
   Building,
+  FileBarChart,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { SessionPayload } from "@/lib/auth/session";
@@ -17,7 +18,7 @@ import { SessionPayload } from "@/lib/auth/session";
 interface SupportHeaderProps {
   user: SessionPayload;
   onOpenNewTicket?: () => void;
-  activeTab?: "chamados" | "usuarios";
+  activeTab?: "chamados" | "usuarios" | "relatorios";
 }
 
 export function SupportHeader({
@@ -102,6 +103,18 @@ export function SupportHeader({
                   <span>Usuários</span>
                 </Link>
               )}
+
+              <Link
+                href="/suporte/relatorios"
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                  activeTab === "relatorios"
+                    ? "bg-blue-50 text-[#0d6efd] border border-blue-200 shadow-xs font-semibold"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }`}
+              >
+                <FileBarChart className="w-3.5 h-3.5" />
+                <span>Relatórios</span>
+              </Link>
             </nav>
 
             {/* Quick Open Ticket Button (Bootstrap Success) */}
