@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketsClientView } from "@/components/suporte/TicketsClientView";
-import { Role, TicketStatus } from "@prisma/client";
+import { Role, TicketStatus, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 
@@ -23,6 +23,11 @@ describe("components/suporte/TicketsClientView", () => {
       screenName: "Tela de Integrações",
       description: "Webhook não está retornando status 200",
       status: TicketStatus.ABERTO,
+      origin: IncidentOrigin.BACK,
+      occurrenceCount: 1,
+      lastOccurrenceAt: new Date(),
+      sourceUrl: null,
+      targetUrl: null,
       slaDueAt: new Date(Date.now() + 4 * 3600 * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -44,6 +49,11 @@ describe("components/suporte/TicketsClientView", () => {
       screenName: "Módulo Financeiro",
       description: "Como exportar para excel?",
       status: TicketStatus.FECHADO,
+      origin: IncidentOrigin.OUTROS,
+      occurrenceCount: 1,
+      lastOccurrenceAt: new Date(),
+      sourceUrl: null,
+      targetUrl: null,
       slaDueAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -65,6 +75,11 @@ describe("components/suporte/TicketsClientView", () => {
       screenName: "Cadastro de Produtos",
       description: "Aguardando confirmação do cliente",
       status: TicketStatus.PENDENTE,
+      origin: IncidentOrigin.FRONT,
+      occurrenceCount: 2,
+      lastOccurrenceAt: new Date(),
+      sourceUrl: null,
+      targetUrl: null,
       slaDueAt: new Date(Date.now() + 1 * 3600 * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),

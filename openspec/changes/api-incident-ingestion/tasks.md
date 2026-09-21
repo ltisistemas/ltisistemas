@@ -17,11 +17,11 @@
 
 ## 4. Support UI Telemetry & Occurrence Viewer
 
-- [ ] 4.1 Update `lib/actions/ticket-actions.ts` to include occurrences, origin, and occurrence counts in `TicketDetail` and `TicketSummary` interfaces with updated unit tests in `tests/unit/actions/ticket-actions.test.ts`
-- [ ] 4.2 Create `components/suporte/OccurrenceTimeline.tsx` component to display occurrence timeline, formatted JSON payload inspector, and stack trace viewer with tests in `tests/components/OccurrenceTimeline.test.tsx`
-- [ ] 4.3 Update `components/suporte/TicketDetailClientView.tsx` to render origin badge (`FRONT`, `BACK`, `INFRA`, `EVENT`, `OUTROS`), occurrence counter chip, and the occurrence telemetry drawer with updated tests in `tests/components/TicketDetailClientView.test.tsx`
+- [x] 4.1 Update `lib/actions/ticket-actions.ts` to include occurrences, origin, and occurrence counts in `TicketDetail` and `TicketSummary` interfaces with updated unit tests in `tests/unit/actions/ticket-actions.test.ts`
+- [x] 4.2 Create `components/suporte/OccurrenceTimeline.tsx` component to display occurrence timeline, formatted JSON payload inspector, and stack trace viewer with tests in `tests/components/OccurrenceTimeline.test.tsx`
+- [x] 4.3 Update `components/suporte/TicketDetailClientView.tsx` to render origin badge (`FRONT`, `BACK`, `INFRA`, `EVENT`, `OUTROS`), occurrence counter chip, and the occurrence telemetry drawer with updated tests in `tests/components/TicketDetailClientView.test.tsx`
 
 ## 5. Verification & End-to-End Validation
 
-- [ ] 5.1 Run full test suite with coverage (`npm run test:coverage`) and verify that all test files pass and maintain >= 85% coverage
-- [ ] 5.2 Run `npm run build` to ensure clean Next.js Turbopack compilation without TypeScript or linting errors
+- [x] 5.1 Run full test suite with coverage (`npm run test:coverage`) and verify that all test files pass and maintain >= 85% coverage
+- [x] 5.2 Run `npm run build` to ensure clean Next.js Turbopack compilation without TypeScript or linting errors

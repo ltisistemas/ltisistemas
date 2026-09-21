@@ -22,7 +22,9 @@ import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
 import { SupportHeader } from "./SupportHeader";
 import { ImageLightboxModal } from "./ImageLightboxModal";
+import { OccurrenceTimeline, OriginBadge } from "./OccurrenceTimeline";
 import { TicketStatus } from "@prisma/client";
+import { Activity } from "lucide-react";
 
 interface TicketDetailClientViewProps {
   user: SessionPayload;
@@ -156,6 +158,13 @@ export function TicketDetailClientView({
                 </span>
                 <StatusBadge status={ticket.status} size="lg" />
                 <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />
+                {ticket.origin && <OriginBadge origin={ticket.origin} />}
+                {ticket.occurrenceCount > 1 && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
+                    <Activity className="w-3.5 h-3.5" />
+                    {ticket.occurrenceCount} ocorrências
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 px-3 py-1 rounded-lg">
                   <Layout className="w-3.5 h-3.5 text-gray-500" />
                   Tela: {ticket.screenName}
@@ -279,6 +288,13 @@ export function TicketDetailClientView({
             {ticket.description}
           </div>
         </div>
+
+        {/* Telemetry & Occurrences Timeline */}
+        {ticket.occurrences && ticket.occurrences.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs mb-6">
+            <OccurrenceTimeline occurrences={ticket.occurrences} />
+          </div>
+        )}
 
         {/* Attachments / Screenshots Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs">

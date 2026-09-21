@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketDetailClientView } from "@/components/suporte/TicketDetailClientView";
-import { Role, TicketStatus } from "@prisma/client";
+import { Role, TicketStatus, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketDetail } from "@/lib/actions/ticket-actions";
 import * as ticketActions from "@/lib/actions/ticket-actions";
@@ -27,6 +27,11 @@ describe("components/suporte/TicketDetailClientView", () => {
     screenName: "Módulo de Relatórios",
     description: "Falha de conexão intermitente ao consultar tabelas",
     status: TicketStatus.ABERTO,
+    origin: IncidentOrigin.BACK,
+    occurrenceCount: 2,
+    lastOccurrenceAt: new Date(),
+    sourceUrl: "https://parceira.com.br/api",
+    targetUrl: null,
     slaDueAt: new Date(Date.now() + 5 * 3600 * 1000),
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -48,6 +53,19 @@ describe("components/suporte/TicketDetailClientView", () => {
         createdAt: new Date(),
       },
     ],
+    occurrences: [
+      {
+        id: "occ_100_1",
+        origin: IncidentOrigin.BACK,
+        occurredAt: new Date(),
+        sourceUrl: "https://parceira.com.br/api",
+        targetUrl: null,
+        stackTrace: "DB Connection Pool Exhausted",
+        payload: '{"poolSize": 20}',
+        headers: null,
+        createdAt: new Date(),
+      },
+    ],
   };
 
   it("should render ticket details, screen name, user info and description", () => {
@@ -59,6 +77,8 @@ describe("components/suporte/TicketDetailClientView", () => {
     );
 
     expect(screen.getByText("LTI-BUG-000055-2026-09-21-14-30")).toBeInTheDocument();
+    expect(screen.getAllByText("Backend").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("2 ocorrências")).toBeInTheDocument();
     expect(screen.getByText("Tela: Módulo de Relatórios")).toBeInTheDocument();
     expect(screen.getByText("Erro crítico no banco de dados")).toBeInTheDocument();
     expect(screen.getByText("João Silva")).toBeInTheDocument();

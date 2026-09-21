@@ -156,7 +156,7 @@ describe("lib/actions/ticket-actions", () => {
         userId: "cli_1",
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      } as any);
 
       const res = await createTicketAction({
         title: "Erro 500 no checkout",
@@ -453,6 +453,7 @@ describe("lib/actions/ticket-actions", () => {
             createdAt: new Date(),
           },
         ],
+        occurrences: [],
       } as any);
 
       const res = await getTicketByIdAction("tkt_mine");
@@ -461,6 +462,7 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.data?.code).toMatch(/^LTI-BUG-[A-Z0-9]{6}-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/);
       expect(res.data?.screenName).toBe("Módulo Financeiro");
       expect(res.data?.attachments.length).toBe(1);
+      expect(res.data?.occurrences).toBeDefined();
     });
 
     it("should handle unauthorized and db errors in getTicketByIdAction", async () => {
