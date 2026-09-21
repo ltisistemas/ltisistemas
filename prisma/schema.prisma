@@ -23,6 +23,14 @@ enum TicketStatus {
   FECHADO
 }
 
+enum IncidentOrigin {
+  FRONT
+  BACK
+  INFRA
+  EVENT
+  OUTROS
+}
+
 model User {
   id             String      @id @default(cuid())
   name           String
@@ -38,28 +46,72 @@ model User {
   updatedAt      DateTime    @updatedAt
 
   tickets Ticket[]
+  apiKeys ApiKey[]
 
   @@map("users")
 }
 
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String    @default("Default API Key")
+  keyHash    String    @unique
+  keyPrefix  String
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
 model Ticket {
-  id           String       @id @default(cuid())
-  ticketNumber Int          @default(autoincrement())
-  title        String
-  description  String       @db.Text
-  screenName   String       @default("Geral")
-  status       TicketStatus @default(ABERTO)
-  slaDueAt     DateTime     @default(now())
-  deletedAt    DateTime?
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String         @id @default(cuid())
+  ticketNumber    Int            @default(autoincrement())
+  title           String
+  description     String         @db.Text
+  screenName      String         @default("Geral")
+  status          TicketStatus   @default(ABERTO)
+  origin          IncidentOrigin @default(OUTROS)
+  fingerprint     String?
+  occurrenceCount Int            @default(1)
+  lastOccurrenceAt DateTime      @default(now())
+  sourceUrl       String?
+  targetUrl       String?
+  slaDueAt        DateTime       @default(now())
+  deletedAt       DateTime?
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   attachments TicketAttachment[]
+  occurrences TicketOccurrence[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([fingerprint, userId, status])
   @@map("tickets")
+}
+
+model TicketOccurrence {
+  id         String         @id @default(cuid())
+  ticketId   String
+  ticket     Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  origin     IncidentOrigin @default(OUTROS)
+  occurredAt DateTime       @default(now())
+  sourceUrl  String?
+  targetUrl  String?
+  stackTrace String?        @db.Text
+  payload    String?        @db.Text
+  headers    String?        @db.Text
+  createdAt  DateTime       @default(now())
+
+  @@index([ticketId])
+  @@index([occurredAt])
+  @@map("ticket_occurrences")
 }
 
 model TicketAttachment {

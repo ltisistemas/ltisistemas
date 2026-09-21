@@ -2,7 +2,7 @@
 
 import { prisma } from "../db/prisma";
 import { requireSession } from "../auth/session";
-import { TicketStatus } from "@prisma/client";
+import { TicketStatus, IncidentOrigin } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
 import { formatTicketCode } from "../utils/ticket-code";
 
@@ -10,6 +10,18 @@ export interface AttachmentInput {
   fileName: string;
   mimeType: string;
   base64Data: string;
+}
+
+export interface TicketOccurrenceItem {
+  id: string;
+  origin: IncidentOrigin;
+  occurredAt: Date;
+  sourceUrl: string | null;
+  targetUrl: string | null;
+  stackTrace: string | null;
+  payload: string | null;
+  headers: string | null;
+  createdAt: Date;
 }
 
 export interface TicketSummary {
@@ -20,6 +32,11 @@ export interface TicketSummary {
   description: string;
   screenName: string;
   status: TicketStatus;
+  origin: IncidentOrigin;
+  occurrenceCount: number;
+  lastOccurrenceAt: Date;
+  sourceUrl: string | null;
+  targetUrl: string | null;
   slaDueAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +59,7 @@ export interface TicketDetail extends TicketSummary {
     base64Data: string;
     createdAt: Date;
   }>;
+  occurrences: TicketOccurrenceItem[];
 }
 
 export interface TicketStats {
@@ -210,6 +228,11 @@ export async function getTicketsAction(
       description: t.description,
       screenName: t.screenName,
       status: t.status,
+      origin: t.origin,
+      occurrenceCount: t.occurrenceCount,
+      lastOccurrenceAt: t.lastOccurrenceAt,
+      sourceUrl: t.sourceUrl,
+      targetUrl: t.targetUrl,
       slaDueAt: t.slaDueAt,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
@@ -270,6 +293,20 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
             createdAt: true,
           },
         },
+        occurrences: {
+          orderBy: { occurredAt: "desc" },
+          select: {
+            id: true,
+            origin: true,
+            occurredAt: true,
+            sourceUrl: true,
+            targetUrl: true,
+            stackTrace: true,
+            payload: true,
+            headers: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -292,12 +329,18 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
         description: ticket.description,
         screenName: ticket.screenName,
         status: ticket.status,
+        origin: ticket.origin,
+        occurrenceCount: ticket.occurrenceCount,
+        lastOccurrenceAt: ticket.lastOccurrenceAt,
+        sourceUrl: ticket.sourceUrl,
+        targetUrl: ticket.targetUrl,
         slaDueAt: ticket.slaDueAt,
         createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt,
         attachmentsCount: ticket.attachments.length,
         user: ticket.user,
         attachments: ticket.attachments,
+        occurrences: ticket.occurrences,
       },
     };
   } catch (error: any) {
