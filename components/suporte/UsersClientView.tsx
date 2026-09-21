@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+
 import {
   Users,
   UserPlus,
@@ -14,6 +15,7 @@ import {
   LifeBuoy,
   Globe,
   Trash2,
+  KeyRound,
   CheckCircle2,
   XCircle,
   Loader2,
@@ -21,6 +23,7 @@ import {
 import { SessionPayload } from "@/lib/auth/session";
 import { SupportHeader } from "./SupportHeader";
 import { CreateUserModal } from "./CreateUserModal";
+import { ResetPasswordModal } from "./ResetPasswordModal";
 import { deleteUserAction, toggleUserStatusAction } from "@/lib/actions/auth-actions";
 import { Role, UserStatus } from "@prisma/client";
 
@@ -47,6 +50,8 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
   const [usersList, setUsersList] = useState<UserItem[]>(initialUsers);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [resetPasswordTargetUser, setResetPasswordTargetUser] = useState<UserItem | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
 
   const filteredUsers = useMemo(() => {
@@ -125,6 +130,22 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
       <SupportHeader user={user} activeTab="usuarios" />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Feedback notification toast / banner */}
+        {feedbackMessage && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center justify-between animate-fadeIn">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-medium">{feedbackMessage}</span>
+            </div>
+            <button
+              onClick={() => setFeedbackMessage(null)}
+              className="text-emerald-400/70 hover:text-emerald-300 transition-colors p-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Top title & action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
           <div>
@@ -135,7 +156,7 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
               </span>
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Controle de acessos, status (ATIVO/INATIVO) e sistemas vinculados.
+              Controle de acessos, status (ATIVO/INATIVO), redefinição de senhas e sistemas vinculados.
             </p>
           </div>
 
@@ -288,16 +309,26 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        {u.id !== user.userId && (
+                        <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => handleDeleteUser(u)}
-                            disabled={actionUserId === u.id}
-                            title="Desativar e excluir cliente (Soft-delete)"
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                            onClick={() => setResetPasswordTargetUser(u)}
+                            title={`Redefinir senha de ${u.name}`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <KeyRound className="w-3.5 h-3.5" />
                           </button>
-                        )}
+
+                          {u.id !== user.userId && (
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              disabled={actionUserId === u.id}
+                              title="Desativar e excluir cliente (Soft-delete)"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -313,7 +344,19 @@ export function UsersClientView({ user, initialUsers }: UsersClientViewProps) {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleUserCreated}
       />
+
+      <ResetPasswordModal
+        isOpen={!!resetPasswordTargetUser}
+        user={resetPasswordTargetUser}
+        onClose={() => setResetPasswordTargetUser(null)}
+        onSuccess={() => {
+          const userName = resetPasswordTargetUser?.name || "Usuário";
+          setFeedbackMessage(`Senha de "${userName}" redefinida com sucesso!`);
+          setTimeout(() => setFeedbackMessage(null), 5000);
+        }}
+      />
     </div>
   );
 }
+
 

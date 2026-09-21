@@ -221,5 +221,43 @@ describe("components/suporte/UsersClientView", () => {
       expect(authActions.createUserAction).toHaveBeenCalled();
     });
   });
+
+  it("should open reset password modal, submit new password, and display feedback banner", async () => {
+    vi.spyOn(authActions, "resetUserPasswordAction").mockResolvedValue({
+      success: true,
+    });
+
+    render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
+
+    // Click on reset password key icon for first user
+    const keyButtons = screen.getAllByTitle(/Redefinir senha de/i);
+    fireEvent.click(keyButtons[0]);
+
+    // Modal should be visible with user name
+    expect(screen.getByText("Redefinir Senha")).toBeInTheDocument();
+    expect(screen.getAllByText("Cliente Alpha").length).toBeGreaterThanOrEqual(1);
+
+    // Fill new password
+    const passwordInput = screen.getByPlaceholderText(/Mínimo 6 caracteres/i);
+    fireEvent.change(passwordInput, { target: { value: "SenhaSegura@2026" } });
+
+    // Submit form
+    const updateBtn = screen.getByRole("button", { name: /Atualizar Senha/i });
+    fireEvent.click(updateBtn);
+
+    await waitFor(() => {
+      expect(authActions.resetUserPasswordAction).toHaveBeenCalledWith(
+        "u1",
+        "SenhaSegura@2026"
+      );
+      expect(screen.getByText(/Senha de "Cliente Alpha" redefinida com sucesso!/i)).toBeInTheDocument();
+    });
+
+    // Dismiss feedback banner
+    const dismissBtn = screen.getByText("✕");
+    fireEvent.click(dismissBtn);
+    expect(screen.queryByText(/Senha de "Cliente Alpha" redefinida com sucesso!/i)).toBeNull();
+  });
 });
+
 

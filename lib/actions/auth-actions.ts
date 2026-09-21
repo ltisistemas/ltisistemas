@@ -282,3 +282,47 @@ export async function toggleUserStatusAction(
     return { success: false, error: "Erro ao atualizar status do usuário." };
   }
 }
+
+/**
+ * Resets a client user's password (restricted exclusively to SUPORTE).
+ */
+export async function resetUserPasswordAction(
+  targetUserId: string,
+  newPassword: string
+): Promise<ActionResult> {
+  try {
+    await requireSession(["SUPORTE"]);
+
+    if (!targetUserId) {
+      return { success: false, error: "ID do usuário não fornecido." };
+    }
+
+    if (!newPassword || newPassword.trim().length < 6) {
+      return { success: false, error: "A nova senha deve ter no mínimo 6 caracteres." };
+    }
+
+    const targetUser = await prisma.user.findFirst({
+      where: { id: targetUserId, deletedAt: null },
+    });
+
+    if (!targetUser) {
+      return { success: false, error: "Usuário não encontrado ou inativo." };
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: targetUserId },
+      data: { passwordHash },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Reset user password error:", error);
+    if (error.message === "FORBIDDEN" || error.message === "UNAUTHORIZED") {
+      return { success: false, error: "Acesso negado: permissão de SUPORTE necessária." };
+    }
+    return { success: false, error: "Erro ao redefinir a senha do usuário." };
+  }
+}
+

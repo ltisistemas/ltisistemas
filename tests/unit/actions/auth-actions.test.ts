@@ -7,7 +7,9 @@ import {
   listUsersAction,
   deleteUserAction,
   toggleUserStatusAction,
+  resetUserPasswordAction,
 } from "@/lib/actions/auth-actions";
+
 import { prisma } from "@/lib/db/prisma";
 import { Role } from "@prisma/client";
 import * as sessionModule from "@/lib/auth/session";
@@ -500,4 +502,125 @@ describe("lib/actions/auth-actions", () => {
       expect(res.error).toContain("Erro ao atualizar status");
     });
   });
+
+  describe("resetUserPasswordAction", () => {
+    it("should reset client password successfully when caller is SUPORTE", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin Support",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+        id: "cli_target",
+        name: "Cliente Target",
+        email: "target@cliente.com",
+        company: "Cliente Corp",
+        contractNumber: "CTR-01",
+        systemUrl: null,
+        status: "ATIVO",
+        role: Role.CLIENTE,
+        passwordHash: "old_hash",
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      vi.spyOn(passwordModule, "hashPassword").mockResolvedValue("new_argon2_hash");
+      vi.spyOn(prisma.user, "update").mockResolvedValue({} as any);
+
+      const res = await resetUserPasswordAction("cli_target", "newSecret@123");
+      expect(res.success).toBe(true);
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: "cli_target" },
+        data: { passwordHash: "new_argon2_hash" },
+      });
+    });
+
+    it("should reject reset if targetUserId is missing or empty", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin Support",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      const res = await resetUserPasswordAction("", "newSecret@123");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("ID do usuário não fornecido");
+    });
+
+    it("should reject reset if new password has less than 6 characters", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin Support",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      const res = await resetUserPasswordAction("cli_target", "123");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("no mínimo 6 caracteres");
+    });
+
+    it("should reject reset if target user is not found or soft-deleted", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin Support",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue(null);
+
+      const res = await resetUserPasswordAction("non_existing_user", "newSecret@123");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Usuário não encontrado");
+    });
+
+    it("should reject reset if caller is not SUPORTE", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockRejectedValue(new Error("FORBIDDEN"));
+
+      const res = await resetUserPasswordAction("cli_target", "newSecret@123");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("permissão de SUPORTE");
+    });
+
+    it("should handle database error during resetUserPasswordAction", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "adm_1",
+        name: "Admin Support",
+        email: "admin@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.user, "findFirst").mockResolvedValue({
+        id: "cli_target",
+        name: "Cliente Target",
+        email: "target@cliente.com",
+        company: "Cliente Corp",
+        contractNumber: "CTR-01",
+        systemUrl: null,
+        status: "ATIVO",
+        role: Role.CLIENTE,
+        passwordHash: "old_hash",
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      vi.spyOn(prisma.user, "update").mockRejectedValue(new Error("DB_CRASH"));
+
+      const res = await resetUserPasswordAction("cli_target", "newSecret@123");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Erro ao redefinir a senha");
+    });
+  });
 });
+
