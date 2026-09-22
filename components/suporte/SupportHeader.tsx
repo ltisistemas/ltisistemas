@@ -14,9 +14,11 @@ import {
   Shield,
   Sparkles,
   UserCheck,
+  Settings2,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth-actions";
 import { SessionPayload } from "@/lib/auth/session";
+import { NfseConfigModal } from "./NfseConfigModal";
 
 interface SupportHeaderProps {
   user: SessionPayload;
@@ -37,6 +39,7 @@ export function SupportHeader({
 }: SupportHeaderProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isNfseConfigOpen, setIsNfseConfigOpen] = useState(false);
 
   const isSupport = user.role === "SUPORTE";
 
@@ -187,6 +190,18 @@ export function SupportHeader({
 
           {/* Right Action and Profile Section */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick NFS-e Config Button for Support */}
+            {isSupport && (
+              <button
+                onClick={() => setIsNfseConfigOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/70 text-blue-300 border border-blue-800/60 text-xs font-medium transition-all hover:scale-105 active:scale-95 shadow-sm"
+                title="Configurações Fiscais da NFS-e (CNPJ Prestador, MEI, CCM, Alíquota)"
+              >
+                <Settings2 className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Config. NFS-e</span>
+              </button>
+            )}
+
             {/* Quick Open Ticket Button */}
             {onOpenNewTicket && (
               <button
@@ -227,6 +242,14 @@ export function SupportHeader({
           </div>
         </div>
       </div>
+
+      {/* Fiscal NFS-e Config Modal */}
+      {isSupport && (
+        <NfseConfigModal
+          isOpen={isNfseConfigOpen}
+          onClose={() => setIsNfseConfigOpen(false)}
+        />
+      )}
     </header>
   );
 }

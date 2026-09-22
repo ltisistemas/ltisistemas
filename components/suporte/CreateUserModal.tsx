@@ -182,13 +182,13 @@ export function CreateUserModal({
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Nº Contrato <span className="text-gray-400 text-[10px]">(Opcional)</span>
+                CPF / CNPJ ou Nº Contrato <span className="text-gray-400 text-[10px]">(Dados Fiscais)</span>
               </label>
               <div className="relative">
                 <FileText className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder="CTR-2026-042"
+                  placeholder="CTR-2026-042 ou CNPJ"
                   value={contractNumber}
                   onChange={(e) => setContractNumber(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd]"

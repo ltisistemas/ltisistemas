@@ -49,7 +49,7 @@ export async function getNfseConfigAction(): Promise<ActionResult<NfseConfig>> {
           prestadorInscricaoMunicipal: "1234567",
           prestadorCodigoMunicipio: "2611606", // Recife
           prestadorOptanteSimples: true,
-          prestadorAliquotaIss: 2.0,
+          prestadorAliquotaIss: 0.0,
           codigoServicoLc116: "01.07",
           cnae: "6202000",
           isConfigured: true,
@@ -82,7 +82,7 @@ export async function saveNfseConfigAction(
       prestadorInscricaoMunicipal: data.prestadorInscricaoMunicipal?.trim() || "1234567",
       prestadorCodigoMunicipio: sanitizeDocument(data.prestadorCodigoMunicipio || "2611606"),
       prestadorOptanteSimples: data.prestadorOptanteSimples ?? true,
-      prestadorAliquotaIss: Number(data.prestadorAliquotaIss) || 2.0,
+      prestadorAliquotaIss: data.prestadorAliquotaIss !== undefined && data.prestadorAliquotaIss !== null ? Number(data.prestadorAliquotaIss) : 0.0,
       codigoServicoLc116: data.codigoServicoLc116?.trim() || "01.07",
       codigoTributacaoMunicipal: data.codigoTributacaoMunicipal?.trim() || null,
       cnae: data.cnae?.trim() || "6202000",
@@ -115,6 +115,10 @@ export interface EmitNfseInput {
   customAliquota?: number;
   issRetido?: boolean;
   customLc116?: string;
+  tomadorCpfCnpj?: string;
+  tomadorRazaoSocial?: string;
+  tomadorEmail?: string;
+  tomadorInscricaoMunicipal?: string;
 }
 
 /**
@@ -177,9 +181,20 @@ export async function emitNfseAction(
       cnae: config.cnae,
     };
 
-    // Tomador: utiliza documento da empresa do cliente ou mock padrão se não preenchido
-    const clientDoc = sanitizeDocument(receivable.user.contractNumber || "06990590000123");
-    const tomadorCpfCnpj = clientDoc.length === 11 || clientDoc.length === 14 ? clientDoc : "06990590000123";
+    // Tomador: utiliza dados informados ou do cadastro do cliente
+    const rawTomadorDoc = sanitizeDocument(input.tomadorCpfCnpj || receivable.user.contractNumber || "06990590000123");
+    const tomadorCpfCnpj = rawTomadorDoc.length === 11 || rawTomadorDoc.length === 14 ? rawTomadorDoc : "06990590000123";
+    const tomadorRazaoSocial = input.tomadorRazaoSocial?.trim() || receivable.user.company || receivable.user.name;
+    const tomadorEmail = input.tomadorEmail?.trim() || receivable.user.email;
+    const tomadorInscricaoMunicipal = input.tomadorInscricaoMunicipal?.trim() || null;
+
+    // Se informou CPF/CNPJ novo, atualiza no cadastro do cliente para memorização
+    if (input.tomadorCpfCnpj && input.tomadorCpfCnpj !== receivable.user.contractNumber) {
+      await prisma.user.update({
+        where: { id: receivable.userId },
+        data: { contractNumber: input.tomadorCpfCnpj.trim() },
+      });
+    }
 
     const discriminacao =
       input.customDiscriminacao?.trim() ||
@@ -193,8 +208,9 @@ export async function emitNfseAction(
       prestador,
       tomador: {
         cpfCnpj: tomadorCpfCnpj,
-        razaoSocial: receivable.user.company || receivable.user.name,
-        email: receivable.user.email,
+        razaoSocial: tomadorRazaoSocial,
+        email: tomadorEmail,
+        inscricaoMunicipal: tomadorInscricaoMunicipal,
       },
       servico: {
         codigoLc116: prestador.codigoServicoLc116 || "01.07",

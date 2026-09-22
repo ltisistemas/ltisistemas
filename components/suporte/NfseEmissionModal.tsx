@@ -11,10 +11,14 @@ import {
   Calculator,
   Percent,
   CheckCircle2,
+  User,
+  Mail,
+  Settings2,
 } from "lucide-react";
 import { emitNfseAction, getNfseConfigAction } from "@/lib/actions/nfse-actions";
 import { LC116_SERVICE_CATALOG, calculateNfseTaxes } from "@/lib/services/nfse/tax-calculator";
 import { NfseSummaryDTO } from "@/lib/services/nfse/types";
+import { NfseConfigModal } from "./NfseConfigModal";
 
 interface NfseEmissionModalProps {
   isOpen: boolean;
@@ -48,28 +52,40 @@ export function NfseEmissionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<NfseSummaryDTO | null>(null);
+  const [isPrestadorConfigOpen, setIsPrestadorConfigOpen] = useState(false);
 
-  // Form State
+  // Form State - Tomador (Cliente)
+  const [tomadorCpfCnpj, setTomadorCpfCnpj] = useState("");
+  const [tomadorRazaoSocial, setTomadorRazaoSocial] = useState("");
+  const [tomadorEmail, setTomadorEmail] = useState("");
+  const [tomadorInscricaoMunicipal, setTomadorInscricaoMunicipal] = useState("");
+
+  // Form State - Serviço & Tributos
   const [discriminacao, setDiscriminacao] = useState("");
   const [lc116Code, setLc116Code] = useState("01.07");
-  const [aliquotaIss, setAliquotaIss] = useState(2.0);
+  const [aliquotaIss, setAliquotaIss] = useState(0); // 0 para MEI por padrão
   const [issRetido, setIssRetido] = useState(false);
   const [environment, setEnvironment] = useState("SIMULADOR");
 
   useEffect(() => {
     if (isOpen) {
+      setTomadorCpfCnpj(receivable.user?.contractNumber || "");
+      setTomadorRazaoSocial(clientCompany || clientName || receivable.user?.company || "");
+      setTomadorEmail(receivable.user?.email || "");
+      setTomadorInscricaoMunicipal("");
+
       setDiscriminacao(
         `Serviços de consultoria, suporte técnico contínuo e manutenção de software. Competência ${receivable.competence} — ${receivable.contractTitle || "Contrato Mensal"}`
       );
       loadConfig();
     }
-  }, [isOpen, receivable]);
+  }, [isOpen, receivable, clientCompany, clientName]);
 
   async function loadConfig() {
     try {
       const res = await getNfseConfigAction();
       if (res.success && res.data) {
-        setAliquotaIss(res.data.prestadorAliquotaIss || 2.0);
+        setAliquotaIss(res.data.prestadorAliquotaIss ?? 0);
         setLc116Code(res.data.codigoServicoLc116 || "01.07");
         setEnvironment(res.data.environment);
       }
@@ -97,6 +113,10 @@ export function NfseEmissionModal({
         customAliquota: Number(aliquotaIss),
         issRetido,
         customLc116: lc116Code,
+        tomadorCpfCnpj: tomadorCpfCnpj.trim(),
+        tomadorRazaoSocial: tomadorRazaoSocial.trim(),
+        tomadorEmail: tomadorEmail.trim(),
+        tomadorInscricaoMunicipal: tomadorInscricaoMunicipal.trim() || undefined,
       });
 
       if (!res.success || !res.data) {
@@ -133,6 +153,15 @@ export function NfseEmissionModal({
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => setIsPrestadorConfigOpen(true)}
+              className="flex items-center space-x-1 text-[11px] text-blue-300 hover:text-blue-200 bg-blue-950/80 hover:bg-blue-900/80 px-2.5 py-1 rounded-lg border border-blue-800/80 transition"
+              title="Configurações fiscais da sua empresa (Prestador)"
+            >
+              <Settings2 className="w-3.5 h-3.5 text-blue-400" />
+              <span>Meus Dados (Prestador)</span>
+            </button>
             <span className="px-2 py-0.5 rounded text-[10px] font-semibold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
               {environment}
             </span>
@@ -193,7 +222,7 @@ export function NfseEmissionModal({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[75vh]">
             {error && (
               <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start space-x-3 text-rose-300 text-xs">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -201,20 +230,79 @@ export function NfseEmissionModal({
               </div>
             )}
 
-            {/* Tomador / Cliente Info */}
-            <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-slate-800 text-slate-300 rounded-lg">
-                  <Building2 className="w-4 h-4" />
-                </div>
+            {/* Seção Tomador (Dados Fiscais do Cliente) */}
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-xs font-semibold text-slate-200 flex items-center">
+                  <Building2 className="w-4 h-4 mr-1.5 text-blue-400" />
+                  Dados do Tomador (Seu Cliente)
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Competência: <strong className="text-blue-400">{receivable.competence}</strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <div className="text-xs text-slate-400 font-medium">Tomador dos Serviços</div>
-                  <div className="text-sm font-semibold text-slate-200">{clientCompany || clientName}</div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    CPF ou CNPJ do Cliente
+                  </label>
+                  <input
+                    type="text"
+                    value={tomadorCpfCnpj}
+                    onChange={(e) => setTomadorCpfCnpj(e.target.value)}
+                    placeholder="00.000.000/0001-00 ou CPF"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    Razão Social / Nome do Cliente
+                  </label>
+                  <input
+                    type="text"
+                    value={tomadorRazaoSocial}
+                    onChange={(e) => setTomadorRazaoSocial(e.target.value)}
+                    placeholder="Razão Social ou Nome Completo"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    required
+                  />
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400 font-medium">Competência / Fatura</div>
-                <div className="text-xs font-semibold text-blue-400">{receivable.competence}</div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    E-mail do Cliente
+                  </label>
+                  <input
+                    type="email"
+                    value={tomadorEmail}
+                    onChange={(e) => setTomadorEmail(e.target.value)}
+                    placeholder="financeiro@empresa.com"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                    Inscrição Municipal (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={tomadorInscricaoMunicipal}
+                    onChange={(e) => setTomadorInscricaoMunicipal(e.target.value)}
+                    placeholder="Inscrição Municipal"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="text-[10px] text-slate-400 bg-slate-900/80 p-2 rounded-lg border border-slate-800 flex items-center gap-1.5">
+                <span className="text-blue-400 font-bold">💡 Dica:</span>
+                <span>O CPF/CNPJ e dados do cliente informados aqui são salvos automaticamente no cadastro para as próximas notas.</span>
               </div>
             </div>
 
@@ -245,14 +333,19 @@ export function NfseEmissionModal({
                   <input
                     type="number"
                     step="0.1"
-                    min="2.0"
+                    min="0"
                     max="5.0"
                     value={aliquotaIss}
-                    onChange={(e) => setAliquotaIss(parseFloat(e.target.value) || 2.0)}
+                    onChange={(e) => setAliquotaIss(parseFloat(e.target.value) || 0)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
                   />
                   <Percent className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-2.5" />
                 </div>
+                {aliquotaIss === 0 && (
+                  <span className="text-[10px] text-emerald-400 block mt-1">
+                    ✓ Alíquota 0% para MEI / Isenção
+                  </span>
+                )}
               </div>
             </div>
 
@@ -342,6 +435,13 @@ export function NfseEmissionModal({
           </form>
         )}
       </div>
+
+      {/* Prestador Config Modal inside Emission */}
+      <NfseConfigModal
+        isOpen={isPrestadorConfigOpen}
+        onClose={() => setIsPrestadorConfigOpen(false)}
+        onSuccess={loadConfig}
+      />
     </div>
   );
 }
