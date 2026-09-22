@@ -8,6 +8,7 @@ import {
   PaymentMethod,
   ProposalStatus,
   UserStatus,
+  NfseStatus,
 } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
 
@@ -60,6 +61,25 @@ export interface ClientCommercialOverviewData {
     isOverdue: boolean;
     notes: string | null;
     createdAt: Date;
+    nfseInvoices?: Array<{
+      id: string;
+      status: NfseStatus;
+      numeroNfse: string | null;
+      chaveAcesso: string | null;
+      codigoVerificacao: string | null;
+      valorLiquido: number;
+      valorIss: number;
+      aliquotaIss: number;
+      discriminacaoServico: string;
+      codigoServicoLc116: string;
+      tomadorCpfCnpj: string;
+      tomadorRazaoSocial: string;
+      dataEmissao: Date;
+      dataCompetencia: Date;
+      motivoCancelamento: string | null;
+      motivoRejeicao: string | null;
+      createdAt: Date;
+    }>;
   }>;
   proposals: Array<{
     id: string;
@@ -141,6 +161,9 @@ export async function getClientCommercialOverviewAction(
           contract: {
             select: { title: true },
           },
+          nfseInvoices: {
+            orderBy: { createdAt: "desc" },
+          },
         },
         orderBy: { dueDate: "desc" },
       }),
@@ -171,6 +194,7 @@ export async function getClientCommercialOverviewAction(
         isOverdue,
         notes: r.notes,
         createdAt: r.createdAt,
+        nfseInvoices: r.nfseInvoices || [],
       };
     });
 

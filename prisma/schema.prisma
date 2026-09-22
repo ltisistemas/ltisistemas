@@ -81,6 +81,7 @@ model User {
   contracts   ClientContract[]
   receivables ClientReceivable[]
   proposals   ClientProposal[]
+  nfseInvoices NfseInvoice[]
 
   @@map("users")
 }
@@ -198,6 +199,8 @@ model ClientReceivable {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
+  nfseInvoices  NfseInvoice[]
+
   @@index([userId, status])
   @@index([competence])
   @@map("client_receivables")
@@ -223,3 +226,134 @@ model ClientProposal {
   @@index([userId, status])
   @@map("client_proposals")
 }
+
+enum NfseStatus {
+  RASCUNHO
+  PROCESSANDO
+  AUTORIZADA
+  REJEITADA
+  CANCELADA
+  SUBSTITUIDA
+}
+
+enum NfseEnvironment {
+  PRODUCAO
+  PRODUCAO_RESTRITA
+  SIMULADOR
+}
+
+enum NfseEventType {
+  EMISSAO_SOLICITADA
+  DPS_GERADA
+  ASSINATURA_OK
+  TRANSMISSAO_SUCESSO
+  TRANSMISSAO_ERRO
+  CONSULTA_STATUS
+  CANCELAMENTO_SOLICITADO
+  CANCELADA
+  SUBSTITUICAO_SOLICITADA
+  SUBSTITUIDA
+}
+
+model NfseConfig {
+  id                          String          @id @default(cuid())
+  environment                 NfseEnvironment @default(SIMULADOR)
+  prestadorCnpj               String
+  prestadorRazaoSocial        String
+  prestadorNomeFantasia       String?
+  prestadorInscricaoMunicipal String
+  prestadorCodigoMunicipio    String          // Código IBGE (ex: 2611606 para Recife)
+  prestadorOptanteSimples     Boolean         @default(true)
+  prestadorRegimeEspecial     String?         // ex: "1" (Microempresa Municipal), "0" (Nenhum)
+  prestadorAliquotaIss        Float           @default(2.0) // 2.00% a 5.00%
+  codigoServicoLc116          String          @default("01.07") // Suporte técnico, manutenção etc
+  codigoTributacaoMunicipal   String?         // Código interno municipal
+  cnae                        String?         @default("6202000") // Desenvolvimento e licenciamento de software
+  certificateBase64           String?         @db.Text
+  certificatePassword         String?
+  certificateExpiresAt        DateTime?
+  apiRestUrl                  String?
+  isConfigured                Boolean         @default(true)
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+
+  @@map("nfse_configs")
+}
+
+model NfseInvoice {
+  id                          String          @id @default(cuid())
+  userId                      String
+  user                        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receivableId                String
+  receivable                  ClientReceivable @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  environment                 NfseEnvironment @default(SIMULADOR)
+  status                      NfseStatus      @default(PROCESSANDO)
+  
+  // Dados da DPS / NFS-e
+  dpsNumero                   String?
+  dpsSerie                    String          @default("1")
+  numeroNfse                  String?
+  chaveAcesso                 String?         @unique
+  codigoVerificacao           String?
+  dataEmissao                 DateTime        @default(now())
+  dataCompetencia             DateTime        @default(now())
+  
+  // Valores Fiscais
+  valorServicos               Float
+  valorDeducoes               Float           @default(0)
+  valorPis                    Float           @default(0)
+  valorCofins                 Float           @default(0)
+  valorInss                   Float           @default(0)
+  valorIr                     Float           @default(0)
+  valorCsll                   Float           @default(0)
+  issRetido                   Boolean         @default(false)
+  valorIss                    Float           @default(0)
+  valorIssRetido              Float           @default(0)
+  aliquotaIss                 Float           @default(2.0)
+  valorLiquido                Float
+  
+  // Detalhes do Serviço
+  discriminacaoServico        String          @db.Text
+  codigoServicoLc116          String          @default("01.07")
+  codigoCnae                  String?
+  
+  // Tomador (Cliente no momento da emissão)
+  tomadorCpfCnpj              String
+  tomadorRazaoSocial          String
+  tomadorEmail                String?
+  tomadorInscricaoMunicipal   String?
+  tomadorEndereco             String?
+  
+  // Arquivos e URLs
+  xmlEnviado                  String?         @db.Text
+  xmlRetorno                  String?         @db.Text
+  danfseUrl                   String?
+  motivoRejeicao              String?         @db.Text
+  motivoCancelamento          String?         @db.Text
+  substituidaPorId            String?
+  substituiId                 String?
+  
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+
+  events                      NfseEvent[]
+
+  @@index([userId, status])
+  @@index([receivableId])
+  @@index([numeroNfse])
+  @@map("nfse_invoices")
+}
+
+model NfseEvent {
+  id          String        @id @default(cuid())
+  nfseId      String
+  nfse        NfseInvoice   @relation(fields: [nfseId], references: [id], onDelete: Cascade)
+  type        NfseEventType
+  description String
+  payload     String?       @db.Text
+  createdAt   DateTime      @default(now())
+
+  @@index([nfseId])
+  @@map("nfse_events")
+}
+

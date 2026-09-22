@@ -33,6 +33,8 @@ import {
   Zap,
   Layers,
   Sparkles,
+  FileCheck,
+  Eye,
 } from "lucide-react";
 import { SessionPayload } from "@/lib/auth/session";
 import {
@@ -65,6 +67,9 @@ import { CreateProposalModal } from "./CreateProposalModal";
 import { CreateTicketModal } from "./CreateTicketModal";
 import { ResetPasswordModal } from "./ResetPasswordModal";
 import { TicketSuccessModal } from "./TicketSuccessModal";
+import { NfseStatusBadge } from "./NfseStatusBadge";
+import { NfseEmissionModal } from "./NfseEmissionModal";
+import { NfseDetailsModal } from "./NfseDetailsModal";
 
 export type ClientTabType =
   | "visao-geral"
@@ -117,6 +122,10 @@ export function ClientHub360View({
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [editingContract, setEditingContract] = useState<any | null>(null);
   const [isReceivableModalOpen, setIsReceivableModalOpen] = useState(false);
+  const [isNfseEmissionOpen, setIsNfseEmissionOpen] = useState(false);
+  const [selectedReceivableForNfse, setSelectedReceivableForNfse] = useState<any | null>(null);
+  const [isNfseDetailsOpen, setIsNfseDetailsOpen] = useState(false);
+  const [selectedInvoiceForDetails, setSelectedInvoiceForDetails] = useState<any | null>(null);
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
@@ -1195,72 +1204,117 @@ export function ClientHub360View({
                             <th className="py-3 px-4">Valor</th>
                             <th className="py-3 px-4">Método</th>
                             <th className="py-3 px-4">Status</th>
+                            <th className="py-3 px-4">NFS-e Fiscal</th>
                             <th className="py-3 px-4 text-right">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 font-medium">
-                          {receivables.map((r) => (
-                            <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
-                              <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
-                                {r.competence}
-                              </td>
-                              <td className="py-3.5 px-4 text-gray-800">
-                                <span className="font-semibold block">{r.description}</span>
-                                {r.contractTitle && (
-                                  <span className="text-[10px] text-gray-400">Contrato: {r.contractTitle}</span>
-                                )}
-                              </td>
-                              <td className="py-3.5 px-4 text-gray-700">
-                                {new Date(r.dueDate).toLocaleDateString("pt-BR")}
-                              </td>
-                              <td className="py-3.5 px-4 font-bold text-gray-900">
-                                R$ {r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-semibold text-[10px]">
-                                  {r.paymentMethod}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                    r.status === "PAGO"
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : r.status === "ATRASADO"
-                                      ? "bg-rose-100 text-rose-800 font-bold"
-                                      : "bg-amber-100 text-amber-800"
-                                  }`}
-                                >
-                                  <span className={`w-1.5 h-1.5 rounded-full ${
-                                    r.status === "PAGO" ? "bg-emerald-500" : r.status === "ATRASADO" ? "bg-rose-500" : "bg-amber-500"
-                                  }`} />
-                                  {r.status}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {isSupport && r.status !== "PAGO" && (
-                                    <button
-                                      onClick={() => handleMarkPaid(r.id)}
-                                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold"
-                                      title="Marcar como Pago"
-                                    >
-                                      Baixar Pago
-                                    </button>
+                          {receivables.map((r) => {
+                            const latestNfse = r.nfseInvoices && r.nfseInvoices.length > 0 ? r.nfseInvoices[0] : null;
+                            const hasActiveNfse = latestNfse && latestNfse.status !== "CANCELADA" && latestNfse.status !== "REJEITADA";
+
+                            return (
+                              <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+                                <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
+                                  {r.competence}
+                                </td>
+                                <td className="py-3.5 px-4 text-gray-800">
+                                  <span className="font-semibold block">{r.description}</span>
+                                  {r.contractTitle && (
+                                    <span className="text-[10px] text-gray-400">Contrato: {r.contractTitle}</span>
                                   )}
-                                  {isSupport && (
-                                    <button
-                                      onClick={() => handleDeleteReceivable(r.id)}
-                                      className="p-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-colors"
-                                      title="Excluir Fatura"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                </td>
+                                <td className="py-3.5 px-4 text-gray-700">
+                                  {new Date(r.dueDate).toLocaleDateString("pt-BR")}
+                                </td>
+                                <td className="py-3.5 px-4 font-bold text-gray-900">
+                                  R$ {r.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-semibold text-[10px]">
+                                    {r.paymentMethod}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                      r.status === "PAGO"
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : r.status === "ATRASADO"
+                                        ? "bg-rose-100 text-rose-800 font-bold"
+                                        : "bg-amber-100 text-amber-800"
+                                    }`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                      r.status === "PAGO" ? "bg-emerald-500" : r.status === "ATRASADO" ? "bg-rose-500" : "bg-amber-500"
+                                    }`} />
+                                    {r.status}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  {latestNfse ? (
+                                    <NfseStatusBadge
+                                      status={latestNfse.status}
+                                      numeroNfse={latestNfse.numeroNfse}
+                                      onClick={() => {
+                                        setSelectedInvoiceForDetails(latestNfse);
+                                        setIsNfseDetailsOpen(true);
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className="text-[10px] text-gray-400 font-medium">Sem NFS-e</span>
                                   )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {isSupport && !hasActiveNfse && (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedReceivableForNfse(r);
+                                          setIsNfseEmissionOpen(true);
+                                        }}
+                                        className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-[11px] font-semibold border border-blue-200 transition-colors"
+                                        title="Gerar NFS-e Nacional para esta fatura"
+                                      >
+                                        <FileCheck className="w-3.5 h-3.5 mr-1" />
+                                        Gerar NFS-e
+                                      </button>
+                                    )}
+                                    {latestNfse && (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedInvoiceForDetails(latestNfse);
+                                          setIsNfseDetailsOpen(true);
+                                        }}
+                                        className="p-1.5 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                                        title="Ver Detalhes / DANFSE"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                    {isSupport && r.status !== "PAGO" && (
+                                      <button
+                                        onClick={() => handleMarkPaid(r.id)}
+                                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold"
+                                        title="Marcar como Pago"
+                                      >
+                                        Baixar Pago
+                                      </button>
+                                    )}
+                                    {isSupport && (
+                                      <button
+                                        onClick={() => handleDeleteReceivable(r.id)}
+                                        className="p-1.5 rounded-lg text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-colors"
+                                        title="Excluir Fatura"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1622,6 +1676,40 @@ export function ClientHub360View({
           userId={currentClientId}
           clientName={client?.name || ""}
           contracts={contracts.map((c) => ({ id: c.id, title: c.title, monthlyValue: c.monthlyValue }))}
+        />
+      )}
+
+      {isNfseEmissionOpen && selectedReceivableForNfse && (
+        <NfseEmissionModal
+          isOpen={isNfseEmissionOpen}
+          onClose={() => {
+            setIsNfseEmissionOpen(false);
+            setSelectedReceivableForNfse(null);
+          }}
+          receivable={selectedReceivableForNfse}
+          clientName={client?.name || ""}
+          clientCompany={client?.company || ""}
+          onSuccess={() => {
+            loadAllClientData(currentClientId);
+            setNotification({
+              type: "success",
+              message: "NFS-e emitida e autorizada com sucesso!",
+            });
+          }}
+        />
+      )}
+
+      {isNfseDetailsOpen && selectedInvoiceForDetails && (
+        <NfseDetailsModal
+          isOpen={isNfseDetailsOpen}
+          onClose={() => {
+            setIsNfseDetailsOpen(false);
+            setSelectedInvoiceForDetails(null);
+          }}
+          invoice={selectedInvoiceForDetails}
+          onUpdated={() => {
+            loadAllClientData(currentClientId);
+          }}
         />
       )}
 
