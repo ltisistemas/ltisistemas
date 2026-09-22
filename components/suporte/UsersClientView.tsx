@@ -606,7 +606,7 @@ export function UsersClientView({
             setResetPasswordTargetUser(null);
             setFeedbackMessage("Senha redefinida com sucesso.");
           }}
-          targetUser={{
+          user={{
             id: resetPasswordTargetUser.id,
             name: resetPasswordTargetUser.name,
             email: resetPasswordTargetUser.email,

@@ -121,7 +121,7 @@ export function ClientHub360View({
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [successTicketData, setSuccessTicketData] = useState<{ code: string; title: string; slaDueAt: Date } | null>(null);
+  const [successTicketData, setSuccessTicketData] = useState<{ id?: string; number?: number; code: string; title?: string } | null>(null);
 
   // Profile Edit State
   const [editName, setEditName] = useState("");
@@ -143,7 +143,7 @@ export function ClientHub360View({
     try {
       const [resCommercial, resTickets, resKeys] = await Promise.all([
         getClientCommercialOverviewAction(cid),
-        getTicketsAction(cid),
+        getTicketsAction("ALL", cid),
         getClientApiKeysAction(cid),
       ]);
 
@@ -231,7 +231,7 @@ export function ClientHub360View({
 
   const handleGenerateMonthlyInvoice = async (contractId: string) => {
     startTransition(async () => {
-      const res = await generateMonthlyReceivableFromContractAction(contractId);
+      const res = await generateMonthlyReceivableFromContractAction({ contractId });
       if (res.success) {
         setNotification({ type: "success", message: "Fatura mensal gerada com sucesso!" });
         loadAllClientData(currentClientId);
@@ -243,7 +243,7 @@ export function ClientHub360View({
 
   const handleUpdateProposalStatus = async (proposalId: string, status: ProposalStatus) => {
     startTransition(async () => {
-      const res = await updateProposalStatusAction(proposalId, status);
+      const res = await updateProposalStatusAction({ id: proposalId, status });
       if (res.success) {
         setNotification({ type: "success", message: `Status da proposta atualizado para ${status}.` });
         loadAllClientData(currentClientId);
@@ -1348,7 +1348,7 @@ export function ClientHub360View({
                                 </span>
                               </td>
                               <td className="py-3.5 px-4">
-                                <SlaBadge slaDueAt={t.slaDueAt} status={t.status} />
+                                <SlaBadge slaDueAt={t.slaDueAt} ticketStatus={t.status} />
                               </td>
                               <td className="py-3.5 px-4">
                                 <StatusBadge status={t.status} />
@@ -1606,7 +1606,6 @@ export function ClientHub360View({
           }}
           userId={currentClientId}
           clientName={client?.name || ""}
-          clientCompany={client?.company || ""}
           initialData={editingContract}
         />
       )}
@@ -1637,7 +1636,6 @@ export function ClientHub360View({
           }}
           userId={currentClientId}
           clientName={client?.name || ""}
-          clientCompany={client?.company || ""}
         />
       )}
 
@@ -1645,13 +1643,16 @@ export function ClientHub360View({
         <CreateTicketModal
           isOpen={isTicketModalOpen}
           onClose={() => setIsTicketModalOpen(false)}
-          onSuccess={(ticket) => {
+          onSuccess={(newTicketId, ticketNumber, ticketCode) => {
             setIsTicketModalOpen(false);
-            setSuccessTicketData(ticket);
+            setSuccessTicketData({
+              id: newTicketId,
+              number: ticketNumber,
+              code: ticketCode,
+            });
             loadAllClientData(currentClientId);
           }}
-          isSupport={isSupport}
-          defaultTargetUserId={currentClientId}
+          userRole={isSupport ? "SUPORTE" : "CLIENTE"}
           clients={allClients}
         />
       )}
@@ -1661,8 +1662,11 @@ export function ClientHub360View({
           isOpen={!!successTicketData}
           onClose={() => setSuccessTicketData(null)}
           ticketCode={successTicketData.code}
-          ticketTitle={successTicketData.title}
-          slaDueAt={successTicketData.slaDueAt}
+          ticketNumber={successTicketData.number}
+          ticketId={successTicketData.id}
+          onViewTicket={() => {
+            setActiveTab("chamados");
+          }}
         />
       )}
 
@@ -1674,7 +1678,7 @@ export function ClientHub360View({
             setIsResetPasswordOpen(false);
             setNotification({ type: "success", message: "Senha do cliente redefinida com sucesso!" });
           }}
-          targetUser={{
+          user={{
             id: client.id,
             name: client.name,
             email: client.email,

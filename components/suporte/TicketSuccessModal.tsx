@@ -13,7 +13,7 @@ interface TicketSuccessModalProps {
   onViewTicket?: (ticketId: string) => void;
 }
 
-export default function TicketSuccessModal({
+export function TicketSuccessModal({
   isOpen,
   ticketNumber,
   ticketCode,
@@ -139,3 +139,5 @@ export default function TicketSuccessModal({
     </div>
   );
 }
+
+export default TicketSuccessModal;

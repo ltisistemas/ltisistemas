@@ -7,6 +7,7 @@ import {
   ReceivableStatus,
   PaymentMethod,
   ProposalStatus,
+  UserStatus,
 } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
 
