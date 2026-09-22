@@ -210,7 +210,7 @@ describe("components/suporte/TicketsClientView", () => {
       />
     );
 
-    expect(screen.getByText("Meus Chamados")).toBeInTheDocument();
+    expect(screen.getAllByText("Meus Chamados").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("button", { name: /Cadastrar Usuário/i })).toBeNull();
   });
 

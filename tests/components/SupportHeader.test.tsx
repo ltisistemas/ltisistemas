@@ -29,7 +29,7 @@ describe("components/suporte/SupportHeader", () => {
     expect(screen.getAllByText("LTI Sistemas").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("SUPORTE")).toBeInTheDocument();
     expect(screen.getByText("Luiz Felipe")).toBeInTheDocument();
-    expect(screen.getByText("Usuários")).toBeInTheDocument();
+    expect(screen.getByText("Clientes")).toBeInTheDocument();
   });
 
   it("should render 'Relatórios' link for both SUPORTE and CLIENTE", () => {

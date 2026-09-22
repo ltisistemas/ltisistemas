@@ -326,3 +326,124 @@ export async function resetUserPasswordAction(
   }
 }
 
+/**
+ * Retorna as chaves de API ativas de um cliente.
+ */
+export async function getClientApiKeysAction(targetUserId?: string): Promise<
+  ActionResult<Array<{ id: string; name: string; keyPrefix: string; lastUsedAt: Date | null; createdAt: Date }>>
+> {
+  try {
+    const session = await requireSession();
+    const userId = session.role === "SUPORTE" && targetUserId ? targetUserId : session.userId;
+
+    const keys = await prisma.apiKey.findMany({
+      where: { userId, revokedAt: null },
+      select: {
+        id: true,
+        name: true,
+        keyPrefix: true,
+        lastUsedAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, data: keys };
+  } catch (error: any) {
+    console.error("getClientApiKeysAction error:", error);
+    return { success: false, error: "Erro ao listar chaves de API." };
+  }
+}
+
+/**
+ * Cria uma nova chave de API para o cliente.
+ */
+export async function createApiKeyAction(
+  targetUserId?: string,
+  name?: string
+): Promise<ActionResult<{ id: string; name: string; keyPrefix: string; secretKey: string; createdAt: Date }>> {
+  try {
+    const session = await requireSession();
+    const userId = session.role === "SUPORTE" && targetUserId ? targetUserId : session.userId;
+
+    const { createApiKeyForUser } = await import("../auth/api-keys");
+    const result = await createApiKeyForUser({ userId, name });
+
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("createApiKeyAction error:", error);
+    return { success: false, error: "Erro ao gerar chave de API." };
+  }
+}
+
+/**
+ * Revoga uma chave de API.
+ */
+export async function revokeApiKeyAction(apiKeyId: string): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    const apiKey = await prisma.apiKey.findUnique({
+      where: { id: apiKeyId },
+    });
+
+    if (!apiKey) {
+      return { success: false, error: "Chave de API não encontrada." };
+    }
+
+    if (session.role !== "SUPORTE" && apiKey.userId !== session.userId) {
+      return { success: false, error: "Permissão negada para revogar esta chave." };
+    }
+
+    await prisma.apiKey.update({
+      where: { id: apiKeyId },
+      data: { revokedAt: new Date() },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("revokeApiKeyAction error:", error);
+    return { success: false, error: "Erro ao revogar chave de API." };
+  }
+}
+
+/**
+ * Atualiza os dados de cadastro e URL do sistema do cliente.
+ */
+export async function updateClientProfileAction(data: {
+  userId: string;
+  name?: string;
+  company?: string;
+  email?: string;
+  systemUrl?: string;
+  contractNumber?: string;
+}): Promise<ActionResult> {
+  try {
+    const session = await requireSession();
+
+    if (session.role !== "SUPORTE" && session.userId !== data.userId) {
+      return { success: false, error: "Permissão negada para editar este perfil." };
+    }
+
+    const dataToUpdate: any = {};
+    if (data.name !== undefined) dataToUpdate.name = data.name.trim();
+    if (data.company !== undefined) dataToUpdate.company = data.company.trim();
+    if (data.email !== undefined) dataToUpdate.email = data.email.toLowerCase().trim();
+    if (data.systemUrl !== undefined) dataToUpdate.systemUrl = data.systemUrl.trim() || null;
+    if (data.contractNumber !== undefined && session.role === "SUPORTE") {
+      dataToUpdate.contractNumber = data.contractNumber.trim() || null;
+    }
+
+    await prisma.user.update({
+      where: { id: data.userId },
+      data: dataToUpdate,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("updateClientProfileAction error:", error);
+    return { success: false, error: error.message || "Erro ao atualizar dados do cliente." };
+  }
+}
+
+

@@ -26,6 +26,9 @@ export interface ClientCommercialOverviewData {
     company: string;
     email: string;
     contractNumber: string | null;
+    systemUrl?: string | null;
+    status?: UserStatus;
+    createdAt?: Date;
   };
   contracts: Array<{
     id: string;
@@ -97,12 +100,16 @@ async function ensureSupportSession() {
 
 /**
  * Obtém a visão 360° comercial e financeira de um cliente específico.
+ * Clientes podem visualizar seus próprios dados; SUPORTE pode visualizar qualquer cliente.
  */
 export async function getClientCommercialOverviewAction(
   clientId: string
 ): Promise<ActionResult<ClientCommercialOverviewData>> {
   try {
-    await ensureSupportSession();
+    const session = await requireSession();
+    if (session.role !== "SUPORTE" && session.userId !== clientId) {
+      return { success: false, error: "Acesso negado. Você só pode visualizar dados da sua própria conta." };
+    }
 
     const client = await prisma.user.findUnique({
       where: { id: clientId, deletedAt: null },
@@ -112,6 +119,9 @@ export async function getClientCommercialOverviewAction(
         company: true,
         email: true,
         contractNumber: true,
+        systemUrl: true,
+        status: true,
+        createdAt: true,
       },
     });
 

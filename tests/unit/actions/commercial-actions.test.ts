@@ -40,12 +40,33 @@ describe("lib/actions/commercial-actions", () => {
   };
 
   describe("Security authorization barrier", () => {
-    it("should reject commercial overview access if user role is CLIENTE", async () => {
+    it("should reject commercial overview access if user role is CLIENTE and attempts to access another client", async () => {
       vi.spyOn(sessionModule, "requireSession").mockResolvedValue(clientSession);
 
-      const res = await getClientCommercialOverviewAction("cli_aposchesf");
+      const res = await getClientCommercialOverviewAction("cli_other_tenant");
       expect(res.success).toBe(false);
       expect(res.error).toContain("Acesso negado");
+    });
+
+    it("should allow commercial overview access if user role is CLIENTE accessing their own account", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue(clientSession);
+      vi.spyOn(prisma.user, "findUnique").mockResolvedValue({
+        id: "cli_aposchesf",
+        name: "Gestor Aposchesf",
+        company: "Aposchesf",
+        email: "gestor@aposchesf.com.br",
+        contractNumber: "CTR-01",
+        systemUrl: null,
+        status: "ATIVO",
+        createdAt: new Date(),
+      } as any);
+      vi.spyOn(prisma.clientContract, "findMany").mockResolvedValue([]);
+      vi.spyOn(prisma.clientReceivable, "findMany").mockResolvedValue([]);
+      vi.spyOn(prisma.clientProposal, "findMany").mockResolvedValue([]);
+
+      const res = await getClientCommercialOverviewAction("cli_aposchesf");
+      expect(res.success).toBe(true);
+      expect(res.data?.client.name).toBe("Gestor Aposchesf");
     });
 
     it("should reject contract creation if user role is CLIENTE", async () => {

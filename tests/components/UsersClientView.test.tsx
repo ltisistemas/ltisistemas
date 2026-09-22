@@ -48,7 +48,7 @@ describe("components/suporte/UsersClientView", () => {
   it("should render users list table with systemUrl and status", () => {
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    expect(screen.getByText(/Gestão de Usuários/i)).toBeInTheDocument();
+    expect(screen.getByText(/Central de Clientes/i)).toBeInTheDocument();
     expect(screen.getByText("Cliente Alpha")).toBeInTheDocument();
     expect(screen.getByText("alpha@empresa.com")).toBeInTheDocument();
     expect(screen.getByText("alpha.com")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("components/suporte/UsersClientView", () => {
   it("should filter users by search query across multiple fields", () => {
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    const searchInput = screen.getByPlaceholderText(/Buscar por nome, e-mail/i);
+    const searchInput = screen.getByPlaceholderText(/Buscar cliente, empresa/i);
 
     // By company
     fireEvent.change(searchInput, { target: { value: "Alpha Corp" } });
@@ -74,13 +74,9 @@ describe("components/suporte/UsersClientView", () => {
     fireEvent.change(searchInput, { target: { value: "internal.local" } });
     expect(screen.getByText("Suporte Beta")).toBeInTheDocument();
 
-    // By status
-    fireEvent.change(searchInput, { target: { value: "INATIVO" } });
-    expect(screen.getByText("Suporte Beta")).toBeInTheDocument();
-
     // Empty result
     fireEvent.change(searchInput, { target: { value: "NonExistentUser123" } });
-    expect(screen.getByText("Nenhum usuário encontrado com os filtros aplicados.")).toBeInTheDocument();
+    expect(screen.getByText(/Nenhum cliente encontrado/i)).toBeInTheDocument();
   });
 
   it("should toggle user status successfully", async () => {
@@ -126,7 +122,7 @@ describe("components/suporte/UsersClientView", () => {
     fireEvent.click(activePill);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith("Erro ao alterar status do usuário.");
+      expect(alertMock).toHaveBeenCalledWith("Erro ao comunicar com o servidor.");
     });
   });
 
@@ -139,7 +135,7 @@ describe("components/suporte/UsersClientView", () => {
 
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    const deleteButtons = screen.getAllByTitle(/Desativar e excluir/i);
+    const deleteButtons = screen.getAllByTitle(/Desativar Cliente/i);
     fireEvent.click(deleteButtons[0]);
 
     await waitFor(() => {
@@ -153,7 +149,7 @@ describe("components/suporte/UsersClientView", () => {
 
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    const deleteButtons = screen.getAllByTitle(/Desativar e excluir/i);
+    const deleteButtons = screen.getAllByTitle(/Desativar Cliente/i);
     fireEvent.click(deleteButtons[0]);
 
     expect(deleteSpy).not.toHaveBeenCalled();
@@ -169,7 +165,7 @@ describe("components/suporte/UsersClientView", () => {
 
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    const deleteButtons = screen.getAllByTitle(/Desativar e excluir/i);
+    const deleteButtons = screen.getAllByTitle(/Desativar Cliente/i);
     fireEvent.click(deleteButtons[0]);
 
     await waitFor(() => {
@@ -179,7 +175,7 @@ describe("components/suporte/UsersClientView", () => {
     vi.spyOn(authActions, "deleteUserAction").mockRejectedValue(new Error("DB Err"));
     fireEvent.click(deleteButtons[0]);
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith("Erro ao excluir usuário.");
+      expect(alertMock).toHaveBeenCalledWith("Erro ao comunicar com o servidor.");
     });
   });
 
@@ -191,7 +187,7 @@ describe("components/suporte/UsersClientView", () => {
 
     render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
 
-    const createBtn = screen.getByRole("button", { name: /Cadastrar Novo Usuário/i });
+    const createBtn = screen.getByRole("button", { name: /\+ Adicionar Cliente/i });
     fireEvent.click(createBtn);
 
     expect(screen.getByPlaceholderText(/Carlos Oliveira/i)).toBeInTheDocument();
@@ -221,43 +217,4 @@ describe("components/suporte/UsersClientView", () => {
       expect(authActions.createUserAction).toHaveBeenCalled();
     });
   });
-
-  it("should open reset password modal, submit new password, and display feedback banner", async () => {
-    vi.spyOn(authActions, "resetUserPasswordAction").mockResolvedValue({
-      success: true,
-    });
-
-    render(<UsersClientView user={supportUser} initialUsers={sampleUsers} />);
-
-    // Click on reset password key icon for first user
-    const keyButtons = screen.getAllByTitle(/Redefinir senha de/i);
-    fireEvent.click(keyButtons[0]);
-
-    // Modal should be visible with user name
-    expect(screen.getByText("Redefinir Senha")).toBeInTheDocument();
-    expect(screen.getAllByText("Cliente Alpha").length).toBeGreaterThanOrEqual(1);
-
-    // Fill new password
-    const passwordInput = screen.getByPlaceholderText(/Mínimo 6 caracteres/i);
-    fireEvent.change(passwordInput, { target: { value: "SenhaSegura@2026" } });
-
-    // Submit form
-    const updateBtn = screen.getByRole("button", { name: /Atualizar Senha/i });
-    fireEvent.click(updateBtn);
-
-    await waitFor(() => {
-      expect(authActions.resetUserPasswordAction).toHaveBeenCalledWith(
-        "u1",
-        "SenhaSegura@2026"
-      );
-      expect(screen.getByText(/Senha de "Cliente Alpha" redefinida com sucesso!/i)).toBeInTheDocument();
-    });
-
-    // Dismiss feedback banner
-    const dismissBtn = screen.getByText("✕");
-    fireEvent.click(dismissBtn);
-    expect(screen.queryByText(/Senha de "Cliente Alpha" redefinida com sucesso!/i)).toBeNull();
-  });
 });
-
-

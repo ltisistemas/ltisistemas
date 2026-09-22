@@ -133,10 +133,21 @@ export function TicketsClientView({
           </div>
 
           <div className="flex items-center gap-3">
+            {!isSupport && (
+              <Link
+                href="/suporte/cliente"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#111827] hover:bg-black text-white text-xs font-semibold shadow-sm transition-all"
+              >
+                <User className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Meu Hub 360°</span>
+                <span className="sm:hidden">Hub 360°</span>
+              </Link>
+            )}
+
             {isSupport && (
               <button
                 onClick={() => setIsUserModalOpen(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0d6efd] hover:bg-[#0b5ed7] text-white text-xs font-semibold shadow-sm transition-all"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0d6efd] hover:bg-[#0b5ed7] text-white text-xs font-semibold shadow-sm transition-all"
               >
                 <UserPlus className="w-4 h-4 text-white" />
                 <span>Cadastrar Usuário</span>
@@ -145,7 +156,7 @@ export function TicketsClientView({
 
             <button
               onClick={() => setIsTicketModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#198754] hover:bg-[#157347] text-white text-xs font-bold shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all"
             >
               <PlusCircle className="w-4 h-4 text-white" />
               <span>Abrir Novo Chamado</span>
