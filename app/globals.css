@@ -2,21 +2,21 @@
 
 @layer base {
   :root {
-    --background: #080c14;
-    --foreground: #f1f5f9;
-    --card: #0d131f;
-    --card-foreground: #f8fafc;
-    --primary: #06b6d4;
-    --primary-foreground: #080c14;
-    --accent: #10b981;
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --accent: #0284c7;
     --muted: #64748b;
-    --muted-foreground: #94a3b8;
-    --border: #1e293b;
+    --muted-foreground: #475569;
+    --border: #e2e8f0;
   }
 
   html {
     scroll-behavior: smooth;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -31,71 +31,75 @@
     width: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #080c14;
+    background: #f1f5f9;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #cbd5e1;
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #94a3b8;
+  }
+
+  /* Custom Selection */
+  ::selection {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: #1d4ed8;
   }
 }
 
-/* Glassmorphism & custom utility classes */
-.glass-panel {
-  background: rgba(13, 19, 31, 0.7);
+/* Glass & Card Utilities */
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
 }
 
-.glass-panel-hover {
+.glass-card-hover {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-panel-hover:hover {
-  background: rgba(17, 24, 39, 0.85);
-  border-color: rgba(6, 182, 212, 0.35);
-  box-shadow: 0 12px 30px -10px rgba(6, 182, 212, 0.15);
-  transform: translateY(-2px);
+.glass-card-hover:hover {
+  background: #ffffff;
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.08), 0 8px 16px -4px rgba(37, 99, 235, 0.06);
+  transform: translateY(-3px);
 }
 
-.glow-cyan {
+/* Ambient Subtle Background Auras */
+.aura-blue {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0) 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0) 70%);
   pointer-events: none;
 }
 
-.glow-emerald {
+.aura-cyan {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0) 70%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, rgba(14, 165, 233, 0) 70%);
   pointer-events: none;
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.aura-amber {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0) 70%);
+  pointer-events: none;
 }
 
-.text-gradient-cyan {
-  background: linear-gradient(135deg, #38bdf8 0%, #06b6d4 50%, #0ea5e9 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Subtle Technical Dot Grid */
+.dot-pattern {
+  background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-.text-gradient-emerald {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.grid-background {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 32px 32px;
+.subtle-grid {
+  background-image: linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 @media print {
@@ -114,4 +118,3 @@
     size: A4 portrait;
   }
 }
-

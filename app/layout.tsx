@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 const siteUrl = "https://ltisistemas.vercel.app";
 
 export const viewport: Viewport = {
-  themeColor: "#080c14",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -195,7 +195,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <script
@@ -211,7 +211,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#080c14] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
+      <body className="min-h-full flex flex-col bg-[#f8fafc] text-slate-900 selection:bg-blue-500/20 selection:text-blue-700">
         <Analytics />
         {children}
       </body>

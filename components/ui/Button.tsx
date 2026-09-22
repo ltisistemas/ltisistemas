@@ -3,11 +3,12 @@ import Link from "next/link";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "emerald";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "emerald" | "amber" | "dark";
   size?: "sm" | "md" | "lg";
   href?: string;
   isExternal?: boolean;
   fullWidth?: boolean;
+  pill?: boolean;
   icon?: React.ReactNode;
   iconRight?: React.ReactNode;
   className?: string;
@@ -20,6 +21,7 @@ export function Button({
   href,
   isExternal = false,
   fullWidth = false,
+  pill = true,
   icon,
   iconRight,
   className = "",
@@ -27,32 +29,45 @@ export function Button({
   ...props
 }: ButtonProps) {
   const sizeStyles = {
-    sm: "px-3.5 py-1.5 text-xs font-medium rounded-lg gap-1.5",
-    md: "px-5 py-2.5 text-sm font-semibold rounded-xl gap-2",
-    lg: "px-7 py-3.5 text-base font-semibold rounded-xl gap-2.5",
+    sm: "px-4 py-2 text-xs font-semibold gap-1.5",
+    md: "px-5 py-2.5 text-sm font-semibold gap-2",
+    lg: "px-7 py-3.5 text-base font-bold gap-2.5",
   };
+
+  const roundedStyle = pill ? "rounded-full" : "rounded-xl";
 
   const variantStyles = {
     primary:
-      "bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-slate-950 font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 active:scale-[0.98]",
+      "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
     secondary:
-      "bg-slate-800/90 hover:bg-slate-700/90 text-white border border-slate-700/80 hover:border-slate-600 active:scale-[0.98]",
+      "bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow active:scale-[0.98]",
     emerald:
-      "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-[0.98]",
+      "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 hover:-translate-y-0.5 active:scale-[0.98]",
+    amber:
+      "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:-translate-y-0.5 active:scale-[0.98]",
+    dark:
+      "bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/20 hover:shadow-lg active:scale-[0.98]",
     outline:
-      "bg-transparent hover:bg-slate-800/60 text-slate-200 border border-slate-700 hover:border-cyan-500/50 active:scale-[0.98]",
+      "bg-transparent hover:bg-blue-50 text-blue-600 border border-blue-200 hover:border-blue-400 active:scale-[0.98]",
     ghost:
-      "bg-transparent hover:bg-slate-800/50 text-slate-300 hover:text-white active:scale-[0.98]",
+      "bg-transparent hover:bg-slate-100 text-slate-700 hover:text-slate-900 active:scale-[0.98]",
   };
 
   const baseStyles =
     "inline-flex items-center justify-center transition-all duration-200 cursor-pointer select-none";
   const widthStyle = fullWidth ? "w-full" : "";
 
-  const combinedClassName = `${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyle} ${className}`;
+  const combinedClassName = `${baseStyles} ${roundedStyle} ${sizeStyles[size]} ${variantStyles[variant]} ${widthStyle} ${className}`;
 
   if (href) {
-    if (isExternal || href.startsWith("http") || href.startsWith("https") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("https://wa.me")) {
+    if (
+      isExternal ||
+      href.startsWith("http") ||
+      href.startsWith("https") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:") ||
+      href.startsWith("https://wa.me")
+    ) {
       return (
         <a
           href={href}

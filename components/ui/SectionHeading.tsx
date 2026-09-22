@@ -3,7 +3,7 @@ import { Badge } from "./Badge";
 
 interface SectionHeadingProps {
   badgeText?: string;
-  badgeVariant?: "default" | "cyan" | "emerald" | "amber" | "slate";
+  badgeVariant?: "default" | "cyan" | "blue" | "emerald" | "amber" | "purple" | "slate";
   title: string;
   highlightText?: string;
   description?: string;
@@ -13,7 +13,7 @@ interface SectionHeadingProps {
 
 export function SectionHeading({
   badgeText,
-  badgeVariant = "cyan",
+  badgeVariant = "blue",
   title,
   highlightText,
   description,
@@ -29,20 +29,20 @@ export function SectionHeading({
       } ${className}`}
     >
       {badgeText && (
-        <Badge variant={badgeVariant} dot size="md" className="mb-4">
+        <Badge variant={badgeVariant} dot size="md" className="mb-4 shadow-2xs font-semibold">
           {badgeText}
         </Badge>
       )}
 
-      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
+      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
         {title}{" "}
         {highlightText && (
-          <span className="text-gradient-cyan">{highlightText}</span>
+          <span className="text-blue-600">{highlightText}</span>
         )}
       </h2>
 
       {description && (
-        <p className="mt-4 text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl">
+        <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl font-normal">
           {description}
         </p>
       )}
