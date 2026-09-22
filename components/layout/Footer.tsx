@@ -17,17 +17,17 @@ export function Footer() {
           {/* Col 1 & 2: Brand & Positioning */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 rounded-xl bg-blue-600 p-0.5 flex items-center justify-center shadow-md shadow-blue-500/20">
-                <div className="h-full w-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <Code2 className="h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform" />
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-600 p-0.5 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-all">
+                <div className="h-full w-full bg-[#0d2259] rounded-[10px] flex items-center justify-center">
+                  <Code2 className="h-5 w-5 text-sky-400 group-hover:rotate-6 transition-transform" />
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-extrabold text-white tracking-tight flex items-center gap-1">
-                  LTI <span className="text-blue-400">Sistemas</span>
+                  lti<span className="text-sky-400 font-black">sistemas</span>
                 </span>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  Engenharia de Software Corporativa
+                <span className="text-[10px] text-sky-200/70 uppercase tracking-wider font-semibold">
+                  Engenharia de Software & Cloud
                 </span>
               </div>
             </Link>

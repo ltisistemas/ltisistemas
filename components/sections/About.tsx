@@ -1,138 +1,105 @@
 import React from "react";
-import { siteConfig, companyPillars } from "@/lib/data";
-import { SectionHeading } from "@/components/ui/SectionHeading";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import {
-  Code,
-  Shield,
-  Layers,
-  Users2,
-  Boxes,
-  ArrowUpRight,
-  Building2,
-  CheckCircle2,
-} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { siteConfig } from "@/lib/data";
+import { CheckCircle2, ArrowRight, Shield, Sparkles, Server, Terminal, Laptop } from "lucide-react";
 
 export function About() {
-  const getPillarIcon = (iconName: string) => {
-    switch (iconName) {
-      case "Shield":
-        return <Shield className="h-5 w-5 text-emerald-600" />;
-      case "Boxes":
-        return <Boxes className="h-5 w-5 text-blue-600" />;
-      case "Users2":
-        return <Users2 className="h-5 w-5 text-purple-600" />;
-      case "Layers":
-        return <Layers className="h-5 w-5 text-amber-600" />;
-      default:
-        return <Code className="h-5 w-5 text-blue-600" />;
-    }
-  };
-
-  const getPillarBadgeBg = (iconName: string) => {
-    switch (iconName) {
-      case "Shield":
-        return "bg-emerald-50 border-emerald-100";
-      case "Boxes":
-        return "bg-blue-50 border-blue-100";
-      case "Users2":
-        return "bg-purple-50 border-purple-100";
-      case "Layers":
-        return "bg-amber-50 border-amber-100";
-      default:
-        return "bg-blue-50 border-blue-100";
-    }
-  };
-
   return (
-    <section id="diferenciais" className="py-20 md:py-28 relative overflow-hidden bg-white">
+    <section id="sobre" className="py-24 bg-slate-50/50 relative overflow-hidden border-b border-slate-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <SectionHeading
-          badgeText="Diferenciais & Governança"
-          badgeVariant="blue"
-          title="Por Que Escolher a"
-          highlightText="LTI Sistemas"
-          description="Transformamos desafios técnicos complexos em plataformas digitais de alta disponibilidade, governança de código e velocidade sustentável."
-        />
+        
+        {/* Main 3-Column Showcase matching Reference */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          
+          {/* Left Column: Heading, Paragraph, CTA */}
+          <div className="lg:col-span-4 flex flex-col items-start text-left">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200/60 px-3.5 py-1.5 rounded-full mb-4">
+              Foco no Seu Negócio
+            </span>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* Company Narrative & Leadership Card */}
-          <div className="lg:col-span-6 flex flex-col justify-between p-8 sm:p-10 rounded-2xl bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-            <div>
-              <div className="flex items-center gap-3.5 mb-6">
-                <div className="h-12 w-12 rounded-xl bg-blue-600 p-0.5 flex items-center justify-center shadow-md shadow-blue-600/20">
-                  <div className="h-full w-full bg-white rounded-[10px] flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">{siteConfig.name}</h3>
-                  <p className="text-xs text-blue-600 font-semibold">{siteConfig.fullName}</p>
-                </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-[1.15] mb-5">
+              Cuidamos de toda a tecnologia, para você focar no que realmente importa.
+            </h2>
+
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed mb-8">
+              Elimine gargalos operacionais e instabilidades. Fornecemos sustentação técnica de alto nível, esteiras de DevOps modernas e desenvolvimento de software contínuo com arquitetos seniores.
+            </p>
+
+            <Link
+              href="#contato"
+              className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl bg-[#0c1f4d] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-slate-900/10 hover:shadow-lg transition-all hover:-translate-y-0.5"
+            >
+              <span>Falar com Especialista</span>
+              <ArrowRight className="w-4 h-4 text-sky-400" />
+            </Link>
+          </div>
+
+          {/* Center Column: Photo of Tech Professional */}
+          <div className="lg:col-span-4 flex justify-center items-center">
+            <div className="relative w-[280px] sm:w-[320px] h-[360px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 group">
+              <Image
+                src="/images/feature-person.jpg"
+                alt="Profissional com smartphone focado em resultados com a LTI Sistemas"
+                fill
+                className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-50" />
+            </div>
+          </div>
+
+          {/* Right Column: 3 Stacked Feature Badges */}
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            
+            {/* Item 1: Regular Light Card */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-300 hover:shadow-md transition-all flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200/60 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               </div>
-
-              <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-                <p>
-                  A <strong>LTI Sistemas</strong> é uma software house e consultoria de engenharia de software especializada no desenvolvimento de ecossistemas corporativos de alta complexidade, microsserviços escaláveis e modernização de aplicações legadas.
-                </p>
-                <p>
-                  Fundada e liderada pelo arquiteto sênior <strong>{siteConfig.founder}</strong> ({siteConfig.founderRole}), a empresa nasceu com a premissa de entregar rigor técnico e maturidade arquitetural praticados em ambientes corporativos de ponta.
-                </p>
-                <p>
-                  Nossa atuação combina liderança técnica hands-on, implementação de esteiras seguras e arquitetura limpa (Clean Architecture), garantindo que seus produtos digitais e squads operem com máxima eficiência.
+              <div className="flex flex-col text-left">
+                <h3 className="text-sm font-bold text-slate-900 mb-1">
+                  Suporte Remoto & SLA Rápido
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Chamados e incidentes resolvidos com tempo de resposta ágil e canal direto com engenheiros.
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="emerald" dot size="sm">
-                  4 Produtos Ativos
-                </Badge>
-                <Badge variant="blue" size="sm">
-                  Padrão Enterprise
-                </Badge>
+            {/* Item 2: Highlighted Active Blue Card */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/25 border border-blue-500 flex items-start gap-4 transform scale-[1.02]">
+              <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="w-5 h-5 text-sky-200" />
               </div>
-
-              <Button
-                href={siteConfig.contact.linkedinUrl}
-                variant="outline"
-                size="sm"
-                isExternal
-                iconRight={<ArrowUpRight className="h-3.5 w-3.5" />}
-              >
-                Direção Técnica (LinkedIn)
-              </Button>
+              <div className="flex flex-col text-left">
+                <h3 className="text-sm font-bold text-white mb-1">
+                  Infraestrutura Cloud & Workstation
+                </h3>
+                <p className="text-xs text-sky-100/90 leading-relaxed">
+                  Ambientes gerenciados em nuvem com alta redundância, bancos de dados seguros e 99.9% de uptime.
+                </p>
+              </div>
             </div>
+
+            {/* Item 3: Regular Light Card */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-300 hover:shadow-md transition-all flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-sky-50 border border-sky-200/60 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 className="w-5 h-5 text-sky-600" />
+              </div>
+              <div className="flex flex-col text-left">
+                <h3 className="text-sm font-bold text-slate-900 mb-1">
+                  Emissão Fiscal NFS-e & Backups
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Geração automática de notas fiscais Gov.br a partir de faturas e rotinas diárias de backup.
+                </p>
+              </div>
+            </div>
+
           </div>
 
-          {/* Company Pillars Grid */}
-          <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {companyPillars.map((item, index) => (
-              <div
-                key={index}
-                className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-blue-300 hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div
-                    className={`h-11 w-11 rounded-xl ${getPillarBadgeBg(
-                      item.iconName
-                    )} border flex items-center justify-center mb-4 shadow-2xs`}
-                  >
-                    {getPillarIcon(item.iconName)}
-                  </div>
-                  <h4 className="text-base font-bold text-slate-900 mb-2 leading-snug">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
+
       </div>
     </section>
   );
