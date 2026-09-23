@@ -40,11 +40,20 @@ export function About() {
             <div className="relative w-[280px] sm:w-[320px] h-[360px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 group">
               <Image
                 src="/images/feature-person.jpg"
-                alt="Profissional com smartphone focado em resultados com a LTI Sistemas"
+                alt="Luiz Felipe — Liderança Técnica em Arquitetura e Engenharia de Software na LTI Sistemas"
                 fill
                 className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-50" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-60" />
+              
+              {/* Floating Live Badge */}
+              <div className="absolute bottom-3.5 left-3.5 right-3.5 p-2.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs text-white">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-semibold text-xs">Governança Técnica</span>
+                </div>
+                <span className="text-[11px] text-sky-400 font-mono">20+ Anos</span>
+              </div>
             </div>
           </div>
 
