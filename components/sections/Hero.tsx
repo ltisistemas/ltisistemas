@@ -143,13 +143,13 @@ export function Hero() {
                 <div className="relative w-[320px] sm:w-[380px] h-[400px] sm:h-[460px] rounded-2xl overflow-hidden bg-slate-900">
                   <Image
                     src="/images/hero-person.jpg"
-                    alt="Consultor de Engenharia de Software LTI Sistemas"
+                    alt="Luiz Felipe — Fundador & Liderança Técnica da LTI Sistemas"
                     fill
                     priority
                     className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Subtle Gradient Vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1f4d] via-transparent to-transparent opacity-60" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1f4d]/80 via-transparent to-transparent opacity-60" />
                   
                   {/* Floating Live Badge */}
                   <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs">
