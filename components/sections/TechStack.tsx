@@ -51,8 +51,8 @@ export function TechStack() {
   };
 
   return (
-    <section id="stack" className="py-20 md:py-28 relative overflow-hidden bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section id="stack" className="py-20 md:py-28 relative overflow-hidden bg-white w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeading
           badgeText="Arsenal Tecnológico"
           badgeVariant="blue"

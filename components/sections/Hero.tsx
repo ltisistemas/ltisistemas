@@ -51,44 +51,44 @@ export function Hero() {
   ];
 
   return (
-    <div id="inicio" className="relative">
+    <div id="inicio" className="relative w-full max-w-full overflow-hidden">
       {/* Hero Blue Section */}
-      <section className="relative pt-32 pb-36 md:pt-40 md:pb-44 overflow-hidden bg-gradient-to-br from-[#0c1f4d] via-[#102d73] to-[#0a183d] text-white">
+      <section className="relative pt-32 pb-36 md:pt-40 md:pb-44 overflow-hidden bg-gradient-to-br from-[#0c1f4d] via-[#102d73] to-[#0a183d] text-white w-full max-w-full">
         {/* Subtle Tech Circuit / Grid Background Elements */}
         <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px]" />
         
         {/* Decorative Floating Pill Shapes & Plus Crosshairs */}
-        <div className="absolute top-24 right-1/3 w-72 h-14 rounded-full bg-white/10 -rotate-45 blur-2xs pointer-events-none" />
-        <div className="absolute top-48 right-12 w-96 h-20 rounded-full bg-sky-400/15 -rotate-45 blur-2xs pointer-events-none" />
-        <div className="absolute bottom-20 left-10 w-64 h-16 rounded-full bg-blue-500/15 -rotate-45 blur-2xs pointer-events-none" />
+        <div className="absolute top-24 right-1/3 w-72 h-14 rounded-full bg-white/10 -rotate-45 blur-2xs pointer-events-none hidden sm:block" />
+        <div className="absolute top-48 right-12 w-96 h-20 rounded-full bg-sky-400/15 -rotate-45 blur-2xs pointer-events-none hidden sm:block" />
+        <div className="absolute bottom-20 left-10 w-64 h-16 rounded-full bg-blue-500/15 -rotate-45 blur-2xs pointer-events-none hidden sm:block" />
 
         {/* Plus Markers */}
-        <Plus className="absolute top-28 right-1/4 w-5 h-5 text-sky-400/60 animate-pulse pointer-events-none" />
-        <Plus className="absolute top-72 left-1/3 w-4 h-4 text-white/40 pointer-events-none" />
-        <Plus className="absolute bottom-32 right-16 w-5 h-5 text-sky-300/50 pointer-events-none" />
+        <Plus className="absolute top-28 right-1/4 w-5 h-5 text-sky-400/60 animate-pulse pointer-events-none hidden sm:block" />
+        <Plus className="absolute top-72 left-1/3 w-4 h-4 text-white/40 pointer-events-none hidden sm:block" />
+        <Plus className="absolute bottom-32 right-16 w-5 h-5 text-sky-300/50 pointer-events-none hidden sm:block" />
 
         {/* Soft Glowing Aura Orbs */}
         <div className="absolute top-1/4 left-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-10 w-96 h-96 bg-sky-400/25 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             {/* Left Column: Headlines & CTAs */}
-            <div className="lg:col-span-7 flex flex-col items-start text-left">
+            <div className="lg:col-span-7 flex flex-col items-start text-left w-full min-w-0">
               {/* Pill Tag */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-sky-400/30 text-sky-300 text-[11px] font-bold tracking-widest uppercase mb-6 backdrop-blur-sm shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                <span>WELCOME TO LTI SISTEMAS</span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-sky-400/30 text-sky-300 text-[11px] font-bold tracking-widest uppercase mb-6 backdrop-blur-sm shadow-sm max-w-full truncate">
+                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping shrink-0" />
+                <span className="truncate">WELCOME TO LTI SISTEMAS</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] mb-6">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1] mb-6">
                 Resolvemos os desafios da sua empresa com <span className="text-sky-400">tecnologia</span>.
               </h1>
 
               {/* Subtitle */}
-              <p className="text-base sm:text-lg text-slate-200/90 leading-relaxed font-normal mb-8 max-w-2xl">
+              <p className="text-sm sm:text-lg text-slate-200/90 leading-relaxed font-normal mb-8 max-w-2xl">
                 Nossa performance é o seu sucesso. Desenvolvemos soluções corporativas sob medida, arquitetura em nuvem e suporte técnico proativo com foco em alta disponibilidade e escala.
               </p>
 
@@ -115,32 +115,32 @@ export function Hero() {
               </div>
 
               {/* Quick Trust Highlights */}
-              <div className="flex flex-wrap items-center gap-6 mt-10 pt-8 border-t border-white/15 text-xs text-slate-300">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-10 pt-8 border-t border-white/15 text-xs text-slate-300 w-full">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
                   <span>20+ Anos de Know-how</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
                   <span>SLA Crítico Garantido</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-sky-400" />
+                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
                   <span>Emissão Fiscal NFS-e</span>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Hero Person Composite */}
-            <div className="lg:col-span-5 relative flex items-center justify-center">
+            <div className="lg:col-span-5 relative flex items-center justify-center w-full min-w-0 max-w-full">
               {/* Angled Decorative 3D Pills behind character */}
-              <div className="absolute -top-6 -right-4 w-48 h-12 rounded-full bg-sky-400/30 -rotate-45 blur-xs" />
-              <div className="absolute top-12 -left-8 w-60 h-16 rounded-full bg-blue-500/40 -rotate-45 blur-xs" />
-              <div className="absolute bottom-10 right-0 w-52 h-14 rounded-full bg-white/20 -rotate-45" />
+              <div className="absolute -top-6 -right-4 w-48 h-12 rounded-full bg-sky-400/30 -rotate-45 blur-xs hidden sm:block pointer-events-none" />
+              <div className="absolute top-12 -left-8 w-60 h-16 rounded-full bg-blue-500/40 -rotate-45 blur-xs hidden sm:block pointer-events-none" />
+              <div className="absolute bottom-10 right-0 w-52 h-14 rounded-full bg-white/20 -rotate-45 hidden sm:block pointer-events-none" />
 
               {/* Main Photo Card */}
-              <div className="relative z-10 rounded-3xl overflow-hidden border border-sky-400/30 shadow-2xl shadow-black/50 bg-gradient-to-tr from-blue-900/60 to-slate-900/40 p-2 backdrop-blur-xs group">
-                <div className="relative w-[320px] sm:w-[380px] h-[400px] sm:h-[460px] rounded-2xl overflow-hidden bg-slate-900">
+              <div className="relative z-10 rounded-3xl overflow-hidden border border-sky-400/30 shadow-2xl shadow-black/50 bg-gradient-to-tr from-blue-900/60 to-slate-900/40 p-2 backdrop-blur-xs group w-full max-w-[320px] sm:max-w-[380px]">
+                <div className="relative w-full h-[380px] sm:h-[460px] rounded-2xl overflow-hidden bg-slate-900">
                   <Image
                     src="/images/hero-person.jpg"
                     alt="Luiz Felipe — Fundador & Liderança Técnica da LTI Sistemas"
@@ -168,7 +168,7 @@ export function Hero() {
       </section>
 
       {/* 3 Overlapping White Feature Cards */}
-      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 sm:-mt-24 md:-mt-28">
+      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 sm:-mt-24 md:-mt-28 w-full max-w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {quickCards.map((card, idx) => (
             <div

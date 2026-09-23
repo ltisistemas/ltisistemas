@@ -83,8 +83,8 @@ export function Contact() {
   };
 
   return (
-    <section id="contato" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/60">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section id="contato" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/60 w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeading
           badgeText="Atendimento Imediato & Propostas"
           badgeVariant="blue"
@@ -242,7 +242,7 @@ export function Contact() {
               Escolha o tema mais alinhado com a necessidade da sua empresa para abrir o WhatsApp com a mensagem personalizada:
             </p>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full">
               {quickTopics.map((topic) => (
                 <a
                   key={topic.id}
@@ -255,17 +255,17 @@ export function Contact() {
                       topic: topic.title,
                     })
                   }
-                  className="group block p-4 sm:p-5 rounded-2xl bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-2xs"
+                  className="group block p-4 sm:p-5 rounded-2xl bg-white hover:bg-slate-50/80 border border-slate-200/90 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer shadow-2xs w-full"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3.5">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
                       <div
                         className={`h-10 w-10 rounded-xl ${topic.iconBg} border flex items-center justify-center shrink-0 transition-colors shadow-2xs`}
                       >
                         {topic.icon}
                       </div>
-                      <div>
-                        <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors mb-1 leading-snug">
                           {topic.title}
                         </h4>
                         <p className="text-xs text-slate-500 leading-relaxed mb-3">

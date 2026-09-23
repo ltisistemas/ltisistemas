@@ -6,8 +6,8 @@ import { Building2, CheckCircle, Calendar } from "lucide-react";
 
 export function Experience() {
   return (
-    <section id="historico" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/50 border-t border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section id="historico" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/50 border-t border-slate-200/80 w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeading
           badgeText="DNA Enterprise & Trajetória"
           badgeVariant="blue"

@@ -36,8 +36,8 @@ export function About() {
           </div>
 
           {/* Center Column: Photo of Tech Professional */}
-          <div className="lg:col-span-4 flex justify-center items-center">
-            <div className="relative w-[280px] sm:w-[320px] h-[360px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 group">
+          <div className="lg:col-span-4 flex justify-center items-center w-full min-w-0">
+            <div className="relative w-full max-w-[280px] sm:max-w-[320px] h-[360px] sm:h-[400px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 group">
               <Image
                 src="/images/feature-person.jpg"
                 alt="Luiz Felipe — Liderança Técnica em Arquitetura e Engenharia de Software na LTI Sistemas"
@@ -58,14 +58,14 @@ export function About() {
           </div>
 
           {/* Right Column: 3 Stacked Feature Badges */}
-          <div className="lg:col-span-4 flex flex-col gap-4">
+          <div className="lg:col-span-4 flex flex-col gap-4 w-full min-w-0">
             
             {/* Item 1: Regular Light Card */}
             <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:border-sky-300 hover:shadow-md transition-all flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200/60 flex items-center justify-center shrink-0 mt-0.5">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               </div>
-              <div className="flex flex-col text-left">
+              <div className="flex flex-col text-left min-w-0 flex-1">
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
                   Suporte Remoto & SLA Rápido
                 </h3>
@@ -76,11 +76,11 @@ export function About() {
             </div>
 
             {/* Item 2: Highlighted Active Blue Card */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/25 border border-blue-500 flex items-start gap-4 transform scale-[1.02]">
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/25 border border-blue-500 flex items-start gap-4 transform sm:scale-[1.02]">
               <div className="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center shrink-0 mt-0.5">
                 <CheckCircle2 className="w-5 h-5 text-sky-200" />
               </div>
-              <div className="flex flex-col text-left">
+              <div className="flex flex-col text-left min-w-0 flex-1">
                 <h3 className="text-sm font-bold text-white mb-1">
                   Infraestrutura Cloud & Workstation
                 </h3>

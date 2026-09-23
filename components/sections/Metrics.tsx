@@ -22,20 +22,20 @@ export function Metrics() {
             Confiado por mais de <span className="text-blue-600 font-black">100+ empresas</span> e plataformas em produção
           </h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 items-center justify-center max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6 items-center justify-center max-w-5xl mx-auto w-full">
             {logos.map((logo, idx) => (
               <div
                 key={idx}
-                className="py-3.5 px-4 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:border-blue-300 hover:bg-blue-50/30 transition-all font-mono font-bold text-xs tracking-wider group cursor-default shadow-2xs"
+                className="py-2.5 px-2 sm:py-3.5 sm:px-4 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:border-blue-300 hover:bg-blue-50/30 transition-all font-mono font-bold text-[10px] sm:text-xs tracking-wider group cursor-default shadow-2xs text-center"
               >
-                <span className="group-hover:scale-105 transition-transform">{logo.icon}</span>
+                <span className="group-hover:scale-105 transition-transform truncate">{logo.icon}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Impact Benchmarks Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-10 border-t border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-10 border-t border-slate-100 w-full">
           {impactMetrics.map((metric, index) => (
             <div
               key={index}

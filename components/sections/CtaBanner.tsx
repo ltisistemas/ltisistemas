@@ -9,8 +9,8 @@ import { ArrowUpRight, ArrowDown, ShieldCheck, Clock, MessageSquare } from "luci
 
 export function CtaBanner() {
   return (
-    <section className="py-16 md:py-24 relative overflow-hidden bg-slate-50/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 md:py-24 relative overflow-hidden bg-slate-50/50 w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="relative rounded-3xl bg-gradient-to-br from-[#0c1f4d] via-[#102d73] to-[#0a183d] p-8 sm:p-12 md:p-16 overflow-hidden shadow-2xl text-white border border-sky-400/20">
           {/* Decorative background grid and auras */}
           <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px]" />

@@ -47,8 +47,8 @@ export function Services() {
   };
 
   return (
-    <section id="solucoes" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section id="solucoes" className="py-20 md:py-28 relative overflow-hidden bg-slate-50/50 w-full max-w-full">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeading
           badgeText="Especialidades & Engenharia"
           badgeVariant="blue"

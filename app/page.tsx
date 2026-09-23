@@ -15,12 +15,12 @@ import { Contact } from "@/components/sections/Contact";
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-slate-900 relative">
+    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-slate-900 relative w-full max-w-full overflow-x-hidden">
       {/* Top Floating Navbar */}
       <Navbar />
 
       {/* Main Content Sections */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col w-full max-w-full overflow-x-hidden">
         {/* 1. Hero Section with Floating Credibility Badges & Quick Categories */}
         <Hero />
 
