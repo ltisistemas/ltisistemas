@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { siteConfig } from "@/lib/data";
 import { trackEvent } from "@/lib/analytics";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -97,29 +98,45 @@ export function Contact() {
           <div className="lg:col-span-5 flex flex-col gap-4">
             {/* Primary Direct WhatsApp Authority Hub */}
             <div className="p-7 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-sm relative overflow-hidden">
-              {/* Status Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="h-12 w-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-2xs">
-                  <WhatsAppIcon className="h-6 w-6" />
+              {/* Status Header with Founder Thumbnail */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-400 shadow-sm shrink-0">
+                    <Image
+                      src="/images/hero-person.jpg"
+                      alt={siteConfig.founder}
+                      fill
+                      className="object-cover object-top"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      {siteConfig.founder}
+                    </h3>
+                    <span className="text-xs text-slate-500 font-medium">Chief Solutions Architect</span>
+                  </div>
                 </div>
                 <Badge variant="emerald" dot size="md">
-                  Atendimento Online
+                  Online
                 </Badge>
               </div>
 
               {/* Authority Information */}
-              <h3 className="text-xl font-bold text-slate-900 mb-1">
-                WhatsApp Corporativo
-              </h3>
-              <p className="text-sm font-bold text-emerald-600 mb-4 font-mono">
-                {siteConfig.contact.whatsappDisplay}
-              </p>
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <WhatsAppIcon className="h-5 w-5" />
+                  <span className="text-xs font-bold uppercase tracking-wider">WhatsApp Corporativo</span>
+                </div>
+                <span className="text-xs font-bold text-emerald-600 font-mono">
+                  {siteConfig.contact.whatsappDisplay}
+                </span>
+              </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 mb-6 space-y-2.5 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span>
-                    Converse com <strong className="text-slate-800 font-semibold">{siteConfig.founder}</strong> (Chief Solutions Architect)
+                    Canal direto com a liderança técnica
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -156,12 +173,17 @@ export function Contact() {
             <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:border-blue-300 transition-all">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                    <LinkedInIcon className="h-4 w-4" />
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-blue-200 shrink-0 shadow-2xs">
+                    <Image
+                      src="/images/hero-person.jpg"
+                      alt={siteConfig.founder}
+                      fill
+                      className="object-cover object-top"
+                    />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">LinkedIn da Liderança</h4>
-                    <span className="text-xs text-slate-500">Artigos & Conexão Corporativa</span>
+                    <h4 className="text-sm font-bold text-slate-900">{siteConfig.founder}</h4>
+                    <span className="text-xs text-slate-500">LinkedIn • Artigos & Conexão</span>
                   </div>
                 </div>
                 <Badge variant="blue" size="sm">
