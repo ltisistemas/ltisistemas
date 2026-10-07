@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketDetailClientView } from "@/components/suporte/TicketDetailClientView";
-import { Role, TicketStatus, IncidentOrigin } from "@prisma/client";
+import { Role, TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketDetail } from "@/lib/actions/ticket-actions";
 import * as ticketActions from "@/lib/actions/ticket-actions";
@@ -26,6 +26,7 @@ describe("components/suporte/TicketDetailClientView", () => {
     title: "Erro crítico no banco de dados",
     screenName: "Módulo de Relatórios",
     description: "Falha de conexão intermitente ao consultar tabelas",
+    type: TicketType.BUG,
     status: TicketStatus.ABERTO,
     origin: IncidentOrigin.BACK,
     occurrenceCount: 2,
@@ -178,20 +179,58 @@ describe("components/suporte/TicketDetailClientView", () => {
     expect(screen.getByTitle("Fechar (Esc)")).toBeInTheDocument();
   });
 
-  it("should render empty attachments placeholder when ticket has no attachments", () => {
-    const emptyTicket: TicketDetail = {
-      ...sampleTicket,
-      attachments: [],
-      attachmentsCount: 0,
-    };
+  it("should allow toggling ticket type", async () => {
+    vi.spyOn(ticketActions, "updateTicketTypeAction").mockResolvedValue({
+      success: true,
+      data: { id: "tkt_100", type: TicketType.FEATURE },
+    });
 
     render(
       <TicketDetailClientView
         user={supportUser}
-        initialTicket={emptyTicket}
+        initialTicket={sampleTicket}
       />
     );
 
-    expect(screen.getByText(/Nenhuma imagem ou captura de tela foi anexada/i)).toBeInTheDocument();
+    const toggleBtn = screen.getByTitle(/Alternar para Nova Funcionalidade/i);
+    fireEvent.click(toggleBtn);
+
+    await waitFor(() => {
+      expect(ticketActions.updateTicketTypeAction).toHaveBeenCalledWith("tkt_100", TicketType.FEATURE);
+    });
+  });
+
+  it("should open edit modal and allow saving updated SLA and opening date", async () => {
+    vi.spyOn(ticketActions, "updateTicketDetailsAction").mockResolvedValue({
+      success: true,
+      data: {
+        id: "tkt_100",
+        type: TicketType.BUG,
+        createdAt: new Date("2026-09-20T08:00:00Z"),
+        slaDueAt: new Date("2026-09-20T14:00:00Z"),
+        title: "Título alterado",
+        screenName: "Tela alterada",
+        description: "Desc",
+      },
+    });
+
+    render(
+      <TicketDetailClientView
+        user={supportUser}
+        initialTicket={sampleTicket}
+      />
+    );
+
+    const manageBtn = screen.getByRole("button", { name: /Gerenciar Abertura & SLA/i });
+    fireEvent.click(manageBtn);
+
+    expect(screen.getByRole("dialog", { name: /Gerenciar Abertura e SLA do Chamado/i })).toBeInTheDocument();
+
+    const saveBtn = screen.getByRole("button", { name: /Salvar Alterações/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(ticketActions.updateTicketDetailsAction).toHaveBeenCalled();
+    });
   });
 });

@@ -26,11 +26,12 @@ import { SessionPayload } from "@/lib/auth/session";
 import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
+import { TicketTypeBadge } from "./TicketTypeBadge";
 import { SupportHeader } from "./SupportHeader";
 import { CreateTicketModal, ClientOption } from "./CreateTicketModal";
 import { CreateUserModal } from "./CreateUserModal";
 import TicketSuccessModal from "./TicketSuccessModal";
-import { TicketStatus } from "@prisma/client";
+import { TicketStatus, TicketType } from "@prisma/client";
 
 interface TicketsClientViewProps {
   user: SessionPayload;
@@ -69,7 +70,14 @@ export function TicketsClientView({
       const q = searchQuery.toLowerCase().trim();
       if (!q) return matchesStatus && matchesClient;
 
+      const isFeatureSearch = q === "feature" || q === "nova funcionalidade" || q === "melhoria";
+      const isBugSearch = q === "bug" || q === "falha" || q === "erro";
+      const matchesType =
+        (isFeatureSearch && ticket.type === "FEATURE") ||
+        (isBugSearch && (ticket.type === "BUG" || !ticket.type));
+
       const matchesSearch =
+        matchesType ||
         ticket.title.toLowerCase().includes(q) ||
         ticket.description.toLowerCase().includes(q) ||
         (ticket.screenName && ticket.screenName.toLowerCase().includes(q)) ||
@@ -362,6 +370,7 @@ export function TicketsClientView({
                         <h2 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-[#0d6efd] transition-colors">
                           {ticket.title}
                         </h2>
+                        <TicketTypeBadge type={ticket.type} size="sm" />
                         <StatusBadge status={ticket.status} size="sm" />
                         <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="sm" />
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">

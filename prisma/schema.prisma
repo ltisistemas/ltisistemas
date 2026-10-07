@@ -23,6 +23,11 @@ enum TicketStatus {
   FECHADO
 }
 
+enum TicketType {
+  BUG
+  FEATURE
+}
+
 enum IncidentOrigin {
   FRONT
   BACK
@@ -109,6 +114,7 @@ model Ticket {
   title           String
   description     String         @db.Text
   screenName      String         @default("Geral")
+  type            TicketType     @default(BUG)
   status          TicketStatus   @default(ABERTO)
   origin          IncidentOrigin @default(OUTROS)
   fingerprint     String?

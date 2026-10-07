@@ -4,6 +4,8 @@ import {
   getTicketsAction,
   getTicketByIdAction,
   updateTicketStatusAction,
+  updateTicketTypeAction,
+  updateTicketDetailsAction,
   deleteTicketAction,
 } from "@/lib/actions/ticket-actions";
 import { prisma } from "@/lib/db/prisma";
@@ -628,6 +630,192 @@ describe("lib/actions/ticket-actions", () => {
       const res = await deleteTicketAction("tkt_1");
       expect(res.success).toBe(false);
       expect(res.error).toContain("Sua sessão expirou");
+    });
+  });
+
+  describe("updateTicketTypeAction", () => {
+    it("should reject invalid ticket type", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      const res = await updateTicketTypeAction("tkt_1", "INVALID" as any);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Tipo de chamado inválido");
+    });
+
+    it("should reject if ticket is missing or deleted", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue(null);
+
+      const res = await updateTicketTypeAction("tkt_missing", "FEATURE" as any);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("não encontrado");
+    });
+
+    it("should reject non-owner client updating type", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_1",
+        userId: "cli_2",
+        deletedAt: null,
+      } as any);
+
+      const res = await updateTicketTypeAction("tkt_1", "FEATURE" as any);
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("não tem permissão");
+    });
+
+    it("should allow ticket owner to update type", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_1",
+        userId: "cli_1",
+        deletedAt: null,
+      } as any);
+
+      vi.spyOn(prisma.ticket, "update").mockResolvedValue({
+        id: "tkt_1",
+        type: "FEATURE",
+      } as any);
+
+      const res = await updateTicketTypeAction("tkt_1", "FEATURE" as any);
+      expect(res.success).toBe(true);
+      expect(res.data?.type).toBe("FEATURE");
+    });
+  });
+
+  describe("updateTicketDetailsAction", () => {
+    it("should reject client attempting to modify createdAt or slaDueAt", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_1",
+        userId: "cli_1",
+        deletedAt: null,
+      } as any);
+
+      const res = await updateTicketDetailsAction({
+        ticketId: "tkt_1",
+        createdAt: new Date(),
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Apenas a equipe de SUPORTE pode alterar datas");
+    });
+
+    it("should allow SUPORTE to update opening date, recalculating SLA", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "sup@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_1",
+        userId: "cli_1",
+        deletedAt: null,
+      } as any);
+
+      const newCreatedAt = new Date("2026-09-10T10:00:00Z");
+      const expectedSla = new Date("2026-09-10T16:00:00Z");
+
+      vi.spyOn(prisma.ticket, "update").mockResolvedValue({
+        id: "tkt_1",
+        type: "BUG",
+        createdAt: newCreatedAt,
+        slaDueAt: expectedSla,
+        title: "Título",
+        screenName: "Tela",
+        description: "Desc",
+      } as any);
+
+      const res = await updateTicketDetailsAction({
+        ticketId: "tkt_1",
+        createdAt: newCreatedAt,
+      });
+
+      expect(res.success).toBe(true);
+      expect(prisma.ticket.update).toHaveBeenCalledWith({
+        where: { id: "tkt_1" },
+        data: expect.objectContaining({
+          createdAt: newCreatedAt,
+          slaDueAt: expectedSla,
+        }),
+        select: expect.any(Object),
+      });
+    });
+
+    it("should allow SUPORTE to update custom slaDueAt and ticket type", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "sup_1",
+        name: "Suporte",
+        email: "sup@lti.com",
+        company: "LTI",
+        role: Role.SUPORTE,
+      });
+
+      vi.spyOn(prisma.ticket, "findUnique").mockResolvedValue({
+        id: "tkt_1",
+        userId: "cli_1",
+        deletedAt: null,
+      } as any);
+
+      const customSla = new Date("2026-09-12T18:00:00Z");
+
+      vi.spyOn(prisma.ticket, "update").mockResolvedValue({
+        id: "tkt_1",
+        type: "FEATURE",
+        createdAt: new Date("2026-09-10T10:00:00Z"),
+        slaDueAt: customSla,
+        title: "Novo Título",
+        screenName: "Nova Tela",
+        description: "Desc",
+      } as any);
+
+      const res = await updateTicketDetailsAction({
+        ticketId: "tkt_1",
+        type: "FEATURE" as any,
+        slaDueAt: customSla,
+        title: "Novo Título",
+        screenName: "Nova Tela",
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.type).toBe("FEATURE");
     });
   });
 });

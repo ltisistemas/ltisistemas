@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TicketsClientView } from "@/components/suporte/TicketsClientView";
-import { Role, TicketStatus, IncidentOrigin } from "@prisma/client";
+import { Role, TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 
@@ -22,6 +22,7 @@ describe("components/suporte/TicketsClientView", () => {
       title: "Erro no webhook",
       screenName: "Tela de Integrações",
       description: "Webhook não está retornando status 200",
+      type: TicketType.BUG,
       status: TicketStatus.ABERTO,
       origin: IncidentOrigin.BACK,
       occurrenceCount: 1,
@@ -48,6 +49,7 @@ describe("components/suporte/TicketsClientView", () => {
       title: "Dúvida sobre relatório",
       screenName: "Módulo Financeiro",
       description: "Como exportar para excel?",
+      type: TicketType.FEATURE,
       status: TicketStatus.FECHADO,
       origin: IncidentOrigin.OUTROS,
       occurrenceCount: 1,
@@ -74,6 +76,7 @@ describe("components/suporte/TicketsClientView", () => {
       title: "Pendente aprovação",
       screenName: "Cadastro de Produtos",
       description: "Aguardando confirmação do cliente",
+      type: TicketType.BUG,
       status: TicketStatus.PENDENTE,
       origin: IncidentOrigin.FRONT,
       occurrenceCount: 2,

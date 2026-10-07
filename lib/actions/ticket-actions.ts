@@ -2,7 +2,7 @@
 
 import { prisma } from "../db/prisma";
 import { requireSession } from "../auth/session";
-import { TicketStatus, IncidentOrigin } from "@prisma/client";
+import { TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
 import { formatTicketCode } from "../utils/ticket-code";
 
@@ -31,6 +31,7 @@ export interface TicketSummary {
   title: string;
   description: string;
   screenName: string;
+  type: TicketType;
   status: TicketStatus;
   origin: IncidentOrigin;
   occurrenceCount: number;
@@ -70,21 +71,23 @@ export interface TicketStats {
 }
 
 /**
- * Creates a new support incident ticket with screen name and 6-hour SLA.
+ * Creates a new support incident ticket with screen name, ticket type and 6-hour SLA.
  */
 export async function createTicketAction(data: {
   title: string;
   description: string;
   screenName: string;
+  type?: TicketType;
   targetUserId?: string;
   attachments?: AttachmentInput[];
-}): Promise<ActionResult<{ id: string; ticketNumber: number; code: string; slaDueAt: Date }>> {
+}): Promise<ActionResult<{ id: string; ticketNumber: number; code: string; slaDueAt: Date; type: TicketType }>> {
   try {
     const session = await requireSession();
 
     const title = data.title?.trim();
     const description = data.description?.trim();
     const screenName = data.screenName?.trim();
+    const type = data.type === TicketType.FEATURE ? TicketType.FEATURE : TicketType.BUG;
     const rawAttachments = data.attachments || [];
 
     if (!title || !description || !screenName) {
@@ -126,6 +129,7 @@ export async function createTicketAction(data: {
         title,
         description,
         screenName,
+        type,
         status: TicketStatus.ABERTO,
         slaDueAt,
         userId: assignedUserId,
@@ -142,6 +146,7 @@ export async function createTicketAction(data: {
       select: {
         id: true,
         ticketNumber: true,
+        type: true,
         slaDueAt: true,
         createdAt: true,
       },
@@ -154,6 +159,7 @@ export async function createTicketAction(data: {
         ticketNumber: ticket.ticketNumber,
         code: formatTicketCode(ticket),
         slaDueAt: ticket.slaDueAt,
+        type: ticket.type,
       },
     };
   } catch (error: any) {
@@ -227,6 +233,7 @@ export async function getTicketsAction(
       title: t.title,
       description: t.description,
       screenName: t.screenName,
+      type: t.type || TicketType.BUG,
       status: t.status,
       origin: t.origin,
       occurrenceCount: t.occurrenceCount,
@@ -328,6 +335,7 @@ export async function getTicketByIdAction(ticketId: string): Promise<ActionResul
         title: ticket.title,
         description: ticket.description,
         screenName: ticket.screenName,
+        type: ticket.type || TicketType.BUG,
         status: ticket.status,
         origin: ticket.origin,
         occurrenceCount: ticket.occurrenceCount,
@@ -389,6 +397,186 @@ export async function updateTicketStatusAction(
 }
 
 /**
+ * Updates the type of a ticket (Bug vs Nova Funcionalidade).
+ * Allowed for ticket owner or SUPORTE.
+ */
+export async function updateTicketTypeAction(
+  ticketId: string,
+  newType: TicketType
+): Promise<ActionResult<{ id: string; type: TicketType }>> {
+  try {
+    const session = await requireSession();
+
+    if (![TicketType.BUG, TicketType.FEATURE].includes(newType)) {
+      return { success: false, error: "Tipo de chamado inválido. Escolha Bug ou Nova Funcionalidade." };
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { id: true, userId: true, deletedAt: true },
+    });
+
+    if (!ticket || ticket.deletedAt) {
+      return { success: false, error: "Chamado não encontrado ou excluído." };
+    }
+
+    if (session.role === "CLIENTE" && ticket.userId !== session.userId) {
+      return { success: false, error: "Você não tem permissão para alterar este chamado." };
+    }
+
+    const updated = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { type: newType },
+      select: {
+        id: true,
+        type: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: updated,
+    };
+  } catch (error: any) {
+    console.error("Update ticket type error:", error);
+    if (error.message === "UNAUTHORIZED") {
+      return { success: false, error: "Sua sessão expirou." };
+    }
+    return { success: false, error: "Erro ao atualizar tipo do chamado." };
+  }
+}
+
+/**
+ * Updates ticket details including type, opening date/time (createdAt) and SLA due date (slaDueAt).
+ * Modifying opening date/time (createdAt) and SLA (slaDueAt) is restricted to SUPORTE to manage SLAs.
+ */
+export async function updateTicketDetailsAction(data: {
+  ticketId: string;
+  type?: TicketType;
+  title?: string;
+  screenName?: string;
+  description?: string;
+  createdAt?: Date | string;
+  slaDueAt?: Date | string;
+}): Promise<
+  ActionResult<{
+    id: string;
+    type: TicketType;
+    createdAt: Date;
+    slaDueAt: Date;
+    title: string;
+    screenName: string;
+    description: string;
+  }>
+> {
+  try {
+    const session = await requireSession();
+
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: data.ticketId },
+      select: {
+        id: true,
+        userId: true,
+        type: true,
+        title: true,
+        screenName: true,
+        description: true,
+        createdAt: true,
+        slaDueAt: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!ticket || ticket.deletedAt) {
+      return { success: false, error: "Chamado não encontrado ou excluído." };
+    }
+
+    // Role check
+    if (session.role === "CLIENTE" && ticket.userId !== session.userId) {
+      return { success: false, error: "Você não tem permissão para alterar este chamado." };
+    }
+
+    // Clients cannot edit createdAt or slaDueAt
+    if (session.role === "CLIENTE" && (data.createdAt !== undefined || data.slaDueAt !== undefined)) {
+      return { success: false, error: "Apenas a equipe de SUPORTE pode alterar datas de abertura e prazos de SLA." };
+    }
+
+    const updateData: any = {};
+
+    if (data.type !== undefined) {
+      if (![TicketType.BUG, TicketType.FEATURE].includes(data.type)) {
+        return { success: false, error: "Tipo de chamado inválido." };
+      }
+      updateData.type = data.type;
+    }
+
+    if (data.title !== undefined) {
+      const trimmed = data.title.trim();
+      if (!trimmed) return { success: false, error: "Título não pode ser vazio." };
+      updateData.title = trimmed;
+    }
+
+    if (data.screenName !== undefined) {
+      const trimmed = data.screenName.trim();
+      if (!trimmed) return { success: false, error: "Nome da tela não pode ser vazio." };
+      updateData.screenName = trimmed;
+    }
+
+    if (data.description !== undefined) {
+      const trimmed = data.description.trim();
+      if (!trimmed) return { success: false, error: "Descrição não pode ser vazia." };
+      updateData.description = trimmed;
+    }
+
+    if (data.createdAt !== undefined) {
+      const parsedCreatedAt = new Date(data.createdAt);
+      if (isNaN(parsedCreatedAt.getTime())) {
+        return { success: false, error: "Data e hora de abertura inválidas." };
+      }
+      updateData.createdAt = parsedCreatedAt;
+
+      // If slaDueAt is not explicitly provided, adjust slaDueAt automatically to +6h from new createdAt
+      if (data.slaDueAt === undefined) {
+        updateData.slaDueAt = new Date(parsedCreatedAt.getTime() + 6 * 60 * 60 * 1000);
+      }
+    }
+
+    if (data.slaDueAt !== undefined) {
+      const parsedSla = new Date(data.slaDueAt);
+      if (isNaN(parsedSla.getTime())) {
+        return { success: false, error: "Data e hora limite de SLA inválidas." };
+      }
+      updateData.slaDueAt = parsedSla;
+    }
+
+    const updated = await prisma.ticket.update({
+      where: { id: data.ticketId },
+      data: updateData,
+      select: {
+        id: true,
+        type: true,
+        createdAt: true,
+        slaDueAt: true,
+        title: true,
+        screenName: true,
+        description: true,
+      },
+    });
+
+    return {
+      success: true,
+      data: updated,
+    };
+  } catch (error: any) {
+    console.error("Update ticket details error:", error);
+    if (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN") {
+      return { success: false, error: "Acesso não autorizado." };
+    }
+    return { success: false, error: "Erro ao atualizar dados do chamado." };
+  }
+}
+
+/**
  * Performs soft-delete on a ticket (allowed for ticket owner or SUPORTE).
  */
 export async function deleteTicketAction(ticketId: string): Promise<ActionResult> {
@@ -422,3 +610,4 @@ export async function deleteTicketAction(ticketId: string): Promise<ActionResult
     return { success: false, error: "Erro ao excluir chamado." };
   }
 }
+

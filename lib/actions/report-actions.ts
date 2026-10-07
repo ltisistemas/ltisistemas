@@ -2,7 +2,7 @@
 
 import { prisma } from "../db/prisma";
 import { requireSession } from "../auth/session";
-import { TicketStatus, IncidentOrigin } from "@prisma/client";
+import { TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { ActionResult } from "./auth-actions";
 import { formatTicketCode } from "../utils/ticket-code";
 
@@ -27,6 +27,7 @@ export interface ReportTicketItem {
   code: string;
   title: string;
   screenName: string;
+  type: TicketType;
   status: TicketStatus;
   origin: IncidentOrigin;
   occurrenceCount: number;
@@ -181,6 +182,7 @@ export async function getClientReportAction(
         code: formatTicketCode(t),
         title: t.title,
         screenName: t.screenName,
+        type: t.type || TicketType.BUG,
         status: t.status,
         origin: t.origin,
         occurrenceCount: t.occurrenceCount,

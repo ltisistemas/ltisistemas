@@ -39,6 +39,7 @@ export function generateExecutiveCopy(params: {
   totalOccurrences: number;
   originBreakdown: OriginStat[];
   topScreens: ScreenStat[];
+  includeSla?: boolean;
 }): ExecutiveCopy {
   const {
     companyName,
@@ -53,6 +54,7 @@ export function generateExecutiveCopy(params: {
     totalOccurrences,
     originBreakdown,
     topScreens,
+    includeSla = true,
   } = params;
 
   const headline = `Relatório Executivo Mensal de Sustentação & Telemetria — ${companyName}`;
@@ -72,7 +74,11 @@ export function generateExecutiveCopy(params: {
     const mainOrigin = originBreakdown.length > 0 ? originBreakdown[0] : null;
     const topScreen = topScreens.length > 0 ? topScreens[0] : null;
 
-    executiveSummary = `Apresentamos o balanço executivo de atendimento técnico e telemetria referente ao período de ${formattedRange}. No intervalo, foram processados ${totalTickets} ${totalTickets === 1 ? "chamado" : "chamados"}, com uma taxa de resolução de ${resolutionRate.toFixed(1)}% e índice de cumprimento de SLA contratual de ${slaComplianceRate.toFixed(1)}%.`;
+    if (includeSla) {
+      executiveSummary = `Apresentamos o balanço executivo de atendimento técnico e telemetria referente ao período de ${formattedRange}. No intervalo, foram processados ${totalTickets} ${totalTickets === 1 ? "chamado" : "chamados"}, com uma taxa de resolução de ${resolutionRate.toFixed(1)}% e índice de cumprimento de SLA contratual de ${slaComplianceRate.toFixed(1)}%.`;
+    } else {
+      executiveSummary = `Apresentamos o balanço executivo de atendimento técnico e telemetria referente ao período de ${formattedRange}. No intervalo, foram processados ${totalTickets} ${totalTickets === 1 ? "chamado" : "chamados"}, com uma taxa de resolução de ${resolutionRate.toFixed(1)}% e atendimento ágil pela equipe técnica.`;
+    }
 
     stabilityDiagnostic = `Do total de demandas gerenciadas, ${closedTickets} ${closedTickets === 1 ? "chamado foi completamente solucionado" : "chamados foram completamente solucionados"}, restando ${openTickets + pendingTickets} ${openTickets + pendingTickets === 1 ? "incidente em análise prioritária" : "incidentes em análise prioritária"} pela equipe de engenharia de suporte. A prontidão do time técnico garantiu o restabelecimento ágil dos serviços afetados.`;
 
@@ -86,21 +92,27 @@ export function generateExecutiveCopy(params: {
   }
 
   // Monta texto formatado integral para e-mail/WhatsApp/Markdown
+  const kpiLines = [
+    `- Total de Chamados Processados: ${totalTickets}`,
+    `- Chamados Solucionados: ${closedTickets} (${resolutionRate.toFixed(1)}%)`,
+    `- Chamados em Andamento: ${openTickets + pendingTickets}`,
+  ];
+  if (includeSla) {
+    kpiLines.push(`- Cumprimento de SLA Contratual: ${slaComplianceRate.toFixed(1)}%`);
+  }
+  kpiLines.push(`- Ocorrências de Telemetria Interceptadas: ${totalOccurrences}`);
+
   const fullFormattedText = [
     `# ${headline}`,
     `*Período de Apuração: ${formattedRange}*`,
     ``,
     `${greeting}`,
     ``,
-    `### 1. Síntese Executiva & Nível de Serviço (SLA)`,
+    `### 1. Síntese Executiva & Nível de Serviço ${includeSla ? "(SLA)" : "Operacional"}`,
     executiveSummary,
     ``,
     `**Indicadores Chave de Desempenho:**`,
-    `- Total de Chamados Processados: ${totalTickets}`,
-    `- Chamados Solucionados: ${closedTickets} (${resolutionRate.toFixed(1)}%)`,
-    `- Chamados em Andamento: ${openTickets + pendingTickets}`,
-    `- Cumprimento de SLA Contratual: ${slaComplianceRate.toFixed(1)}%`,
-    `- Ocorrências de Telemetria Interceptadas: ${totalOccurrences}`,
+    ...kpiLines,
     ``,
     `### 2. Diagnóstico de Estabilidade Técnica`,
     stabilityDiagnostic,

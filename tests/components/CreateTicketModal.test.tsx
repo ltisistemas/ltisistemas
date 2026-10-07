@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CreateTicketModal } from "@/components/suporte/CreateTicketModal";
 import * as ticketActions from "@/lib/actions/ticket-actions";
 import * as compressionModule from "@/lib/utils/image-compression";
+import { TicketType } from "@prisma/client";
 
 describe("components/suporte/CreateTicketModal", () => {
   beforeEach(() => {
@@ -42,7 +43,7 @@ describe("components/suporte/CreateTicketModal", () => {
 
     vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_123", ticketNumber: 77, code: "LTI-BUG-000077-2026-09-21-12-00", slaDueAt: new Date() },
+      data: { id: "tkt_123", ticketNumber: 77, code: "LTI-BUG-000077-2026-09-21-12-00", slaDueAt: new Date(), type: TicketType.BUG },
     });
 
     render(
@@ -140,7 +141,7 @@ describe("components/suporte/CreateTicketModal", () => {
 
     const createSpy = vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_sup_1", ticketNumber: 88, code: "LTI-BUG-000088-2026-09-21-12-00", slaDueAt: new Date() },
+      data: { id: "tkt_sup_1", ticketNumber: 88, code: "LTI-BUG-000088-2026-09-21-12-00", slaDueAt: new Date(), type: TicketType.BUG },
     });
 
     const mockClients = [

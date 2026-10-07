@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
-import { X, Upload, Loader2, AlertCircle, Clock, UserCheck } from "lucide-react";
+import { X, Upload, Loader2, AlertCircle, Clock, UserCheck, Bug, Sparkles } from "lucide-react";
 import { createTicketAction, AttachmentInput } from "@/lib/actions/ticket-actions";
 import { compressImageToBase64 } from "@/lib/utils/image-compression";
+import { TicketType } from "@prisma/client";
 
 export interface ClientOption {
   id: string;
@@ -27,6 +28,7 @@ export function CreateTicketModal({
   userRole,
   clients = [],
 }: CreateTicketModalProps) {
+  const [type, setType] = useState<TicketType>(TicketType.BUG);
   const [title, setTitle] = useState("");
   const [screenName, setScreenName] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
@@ -100,6 +102,7 @@ export function CreateTicketModal({
       const res = await createTicketAction({
         title,
         screenName,
+        type,
         description,
         targetUserId: isSupport && targetUserId ? targetUserId : undefined,
         attachments,
@@ -112,6 +115,7 @@ export function CreateTicketModal({
       }
 
       // Reset fields
+      setType(TicketType.BUG);
       setTitle("");
       setScreenName("");
       setTargetUserId("");
@@ -199,6 +203,58 @@ export function CreateTicketModal({
               </div>
             </div>
           )}
+
+          {/* Type Selector (Bug vs Nova Funcionalidade) */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Tipo de Solicitação <span className="text-[#dc3545]">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setType(TicketType.BUG)}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                  type === TicketType.BUG
+                    ? "border-rose-400 bg-rose-50/80 text-rose-900 ring-2 ring-rose-400/20 shadow-xs font-semibold"
+                    : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-lg shrink-0 ${
+                    type === TicketType.BUG ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <Bug className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold leading-tight">Bug / Erro</div>
+                  <div className="text-[10px] text-gray-500 truncate">Falha ou comportamento incorreto</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setType(TicketType.FEATURE)}
+                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                  type === TicketType.FEATURE
+                    ? "border-purple-400 bg-purple-50/80 text-purple-900 ring-2 ring-purple-400/20 shadow-xs font-semibold"
+                    : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                }`}
+              >
+                <div
+                  className={`p-2 rounded-lg shrink-0 ${
+                    type === TicketType.FEATURE ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold leading-tight">Nova Funcionalidade</div>
+                  <div className="text-[10px] text-gray-500 truncate">Novo recurso ou melhoria</div>
+                </div>
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>

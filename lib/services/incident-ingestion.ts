@@ -1,5 +1,5 @@
 import { prisma } from "../db/prisma";
-import { TicketStatus, IncidentOrigin } from "@prisma/client";
+import { TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { formatTicketCode } from "../utils/ticket-code";
 import {
   generateIncidentFingerprint,
@@ -11,6 +11,7 @@ export interface IngestIncidentInput {
   title: string;
   screenName: string;
   description: string;
+  type?: "BUG" | "FEATURE" | TicketType | string;
   origin?: "FRONT" | "BACK" | "INFRA" | "EVENT" | "OUTROS" | string;
   sourceUrl?: string | null;
   targetUrl?: string | null;
@@ -28,6 +29,7 @@ export interface IngestIncidentResult {
   code: string;
   occurrenceCount: number;
   occurrenceId: string;
+  type?: TicketType;
   status: TicketStatus;
   slaDueAt: Date;
 }
@@ -124,11 +126,17 @@ export async function ingestIncidentService(
   // Create new ticket with initial occurrence
   const slaDueAt = new Date(Date.now() + 6 * 60 * 60 * 1000);
 
+  const ticketType =
+    input.type === "FEATURE" || input.type === TicketType.FEATURE
+      ? TicketType.FEATURE
+      : TicketType.BUG;
+
   const newTicket = await prisma.ticket.create({
     data: {
       title,
       description,
       screenName,
+      type: ticketType,
       origin: originEnum,
       status: TicketStatus.ABERTO,
       fingerprint,

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ClientReportView } from "@/components/suporte/ClientReportView";
-import { Role, TicketStatus, IncidentOrigin } from "@prisma/client";
+import { Role, TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 import { ClientReportData } from "@/lib/actions/report-actions";
 
@@ -64,6 +64,7 @@ describe("components/suporte/ClientReportView", () => {
         code: "LTI-BUG-000001-2026-09-01-10-00",
         title: "Botão com erro",
         screenName: "Checkout",
+        type: TicketType.BUG,
         status: TicketStatus.FECHADO,
         origin: IncidentOrigin.FRONT,
         occurrenceCount: 6,
@@ -118,6 +119,28 @@ describe("components/suporte/ClientReportView", () => {
     fireEvent.click(copyBtn);
 
     expect(writeTextSpy).toHaveBeenCalledWith("Texto completo do relatório executivo");
+  });
+
+  it("should toggle SLA inclusion on and off", () => {
+    render(
+      <ClientReportView
+        user={supportUser}
+        clients={clients}
+        initialReportData={mockReportData}
+        initialStartDate="2026-09-01"
+        initialEndDate="2026-09-30"
+      />
+    );
+
+    const slaCheckbox = screen.getByRole("checkbox", { name: /Exibir \/ Imprimir com SLA/i });
+    expect(slaCheckbox).toBeChecked();
+    expect(screen.getByText("Cumprimento SLA")).toBeInTheDocument();
+
+    // Toggle off SLA
+    fireEvent.click(slaCheckbox);
+    expect(slaCheckbox).not.toBeChecked();
+    expect(screen.queryByText("Cumprimento SLA")).not.toBeInTheDocument();
+    expect(screen.queryByText("No Prazo")).not.toBeInTheDocument();
   });
 
   it("should handle period presets click", () => {

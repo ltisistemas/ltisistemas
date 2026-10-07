@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import {
   FileBarChart,
@@ -23,10 +23,12 @@ import {
 import { SessionPayload } from "@/lib/auth/session";
 import { SupportHeader } from "./SupportHeader";
 import { StatusBadge } from "./StatusBadge";
+import { TicketTypeBadge } from "./TicketTypeBadge";
 import {
   ClientReportData,
   getClientReportAction,
 } from "@/lib/actions/report-actions";
+import { generateExecutiveCopy } from "@/lib/utils/report-copy";
 
 export interface ClientItem {
   id: string;
@@ -62,12 +64,36 @@ export function ClientReportView({
   const [startDate, setStartDate] = useState<string>(initialStartDate);
   const [endDate, setEndDate] = useState<string>(initialEndDate);
   const [preset, setPreset] = useState<PeriodPreset>("current_month");
+  const [includeSla, setIncludeSla] = useState<boolean>(true);
 
   const [reportData, setReportData] = useState<ClientReportData | null>(
     initialReportData
   );
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
+
+  // Dynamic executive copy based on current SLA toggle state
+  const activeExecutiveCopy = useMemo(() => {
+    if (!reportData) return null;
+    if (includeSla) {
+      return reportData.executiveCopy;
+    }
+    return generateExecutiveCopy({
+      companyName: reportData.client?.company || user.company,
+      contactName: reportData.client?.name || "Diretoria e TI",
+      formattedRange: reportData.period.formattedRange,
+      totalTickets: reportData.metrics.totalTickets,
+      closedTickets: reportData.metrics.closedTickets,
+      openTickets: reportData.metrics.openTickets,
+      pendingTickets: reportData.metrics.pendingTickets,
+      resolutionRate: reportData.metrics.resolutionRate,
+      slaComplianceRate: reportData.metrics.slaComplianceRate,
+      totalOccurrences: reportData.metrics.totalOccurrences,
+      originBreakdown: reportData.originBreakdown,
+      topScreens: reportData.topScreens,
+      includeSla: false,
+    });
+  }, [reportData, user.company, includeSla]);
 
   // Helper para calcular datas dos presets
   const applyPreset = (type: PeriodPreset) => {
@@ -126,11 +152,10 @@ export function ClientReportView({
   };
 
   const handleCopyText = async () => {
-    if (!reportData?.executiveCopy.fullFormattedText) return;
+    const textToCopy = activeExecutiveCopy?.fullFormattedText || reportData?.executiveCopy.fullFormattedText;
+    if (!textToCopy) return;
     try {
-      await navigator.clipboard.writeText(
-        reportData.executiveCopy.fullFormattedText
-      );
+      await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
@@ -166,6 +191,7 @@ export function ClientReportView({
             </p>
             <p>Período: {reportData?.period.formattedRange}</p>
             <p>Emissão: {new Date().toLocaleDateString("pt-BR")}</p>
+            {!includeSla && <p className="italic text-gray-400">Modalidade: Sem métricas de SLA</p>}
           </div>
         </div>
       </div>
@@ -183,11 +209,22 @@ export function ClientReportView({
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Consolidação de SLAs, diagnóstico de estabilidade e parecer técnico executivo para clientes.
+              Consolidação de chamados, diagnóstico de estabilidade e parecer técnico executivo para clientes.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            {/* SLA Toggle Switch */}
+            <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 bg-white border border-gray-300 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-xs select-none">
+              <input
+                type="checkbox"
+                checked={includeSla}
+                onChange={(e) => setIncludeSla(e.target.checked)}
+                className="w-4 h-4 text-[#0d6efd] rounded border-gray-300 focus:ring-[#0d6efd] cursor-pointer"
+              />
+              <span>Exibir / Imprimir com SLA</span>
+            </label>
+
             <button
               type="button"
               onClick={handleCopyText}
@@ -225,7 +262,7 @@ export function ClientReportView({
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-[#198754]" />
               <span>
-                Texto executivo copiado para a área de transferência! Pronto para envio por e-mail ou WhatsApp aos gestores.
+                Texto executivo {includeSla ? "com SLA" : "sem SLA"} copiado para a área de transferência! Pronto para envio aos gestores.
               </span>
             </div>
           </div>
@@ -361,7 +398,13 @@ export function ClientReportView({
         {reportData && (
           <div className="mt-6 space-y-6">
             {/* Cartões de Indicadores Executivos (KPIs) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div
+              className={`grid gap-4 ${
+                includeSla
+                  ? "grid-cols-2 md:grid-cols-4"
+                  : "grid-cols-1 sm:grid-cols-3"
+              }`}
+            >
               {/* Card 1: Total de Chamados */}
               <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-gray-500 mb-2">
@@ -407,25 +450,27 @@ export function ClientReportView({
                 </div>
               </div>
 
-              {/* Card 3: SLA Cumprido */}
-              <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
-                <div className="flex items-center justify-between text-gray-500 mb-2">
-                  <span className="text-xs font-medium uppercase tracking-wider">
-                    Cumprimento SLA
-                  </span>
-                  <Clock className="w-4 h-4 text-[#0d6efd]" />
+              {/* Card 3: SLA Cumprido (Conditional) */}
+              {includeSla && (
+                <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-gray-500 mb-2">
+                    <span className="text-xs font-medium uppercase tracking-wider">
+                      Cumprimento SLA
+                    </span>
+                    <Clock className="w-4 h-4 text-[#0d6efd]" />
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-[#0d6efd]">
+                      {reportData.metrics.slaComplianceRate.toFixed(0)}%
+                    </span>
+                    <span className="text-xs text-gray-500">no prazo</span>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
+                    <span>Meta contratual:</span>
+                    <strong className="text-gray-900">6h úteis</strong>
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-[#0d6efd]">
-                    {reportData.metrics.slaComplianceRate.toFixed(0)}%
-                  </span>
-                  <span className="text-xs text-gray-500">no prazo</span>
-                </div>
-                <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
-                  <span>Meta contratual:</span>
-                  <strong className="text-gray-900">6h úteis</strong>
-                </div>
-              </div>
+              )}
 
               {/* Card 4: Ocorrências de Telemetria */}
               <div className="p-4 rounded-xl bg-white border border-gray-200 shadow-xs flex flex-col justify-between">
@@ -459,7 +504,7 @@ export function ClientReportView({
                   </span>
                   <div>
                     <h2 className="text-base font-bold text-gray-900">
-                      {reportData.executiveCopy.headline}
+                      {activeExecutiveCopy?.headline || reportData.executiveCopy.headline}
                     </h2>
                     <span className="text-xs text-gray-500">
                       Período de Apuração: {reportData.period.formattedRange}
@@ -479,16 +524,16 @@ export function ClientReportView({
 
               <div className="mt-5 space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed">
                 <p className="font-semibold text-gray-900">
-                  {reportData.executiveCopy.greeting}
+                  {activeExecutiveCopy?.greeting || reportData.executiveCopy.greeting}
                 </p>
 
                 {/* 1. Síntese Executiva */}
                 <div className="p-3.5 rounded-lg bg-gray-50 border border-gray-200/80">
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-[#0d6efd]" />
-                    1. Síntese Executiva & Nível de Serviço (SLA)
+                    1. Síntese Executiva & Nível de Serviço {includeSla ? "(SLA)" : "Operacional"}
                   </h3>
-                  <p>{reportData.executiveCopy.executiveSummary}</p>
+                  <p>{activeExecutiveCopy?.executiveSummary || reportData.executiveCopy.executiveSummary}</p>
                 </div>
 
                 {/* 2. Diagnóstico de Estabilidade */}
@@ -497,7 +542,7 @@ export function ClientReportView({
                     <CheckCircle2 className="w-4 h-4 text-[#198754]" />
                     2. Diagnóstico de Estabilidade Técnica
                   </h3>
-                  <p>{reportData.executiveCopy.stabilityDiagnostic}</p>
+                  <p>{activeExecutiveCopy?.stabilityDiagnostic || reportData.executiveCopy.stabilityDiagnostic}</p>
                 </div>
 
                 {/* 3. Telemetria e Camadas */}
@@ -506,7 +551,7 @@ export function ClientReportView({
                     <Cpu className="w-4 h-4 text-[#ffc107]" />
                     3. Análise de Telemetria e Camadas Afetadas
                   </h3>
-                  <p>{reportData.executiveCopy.telemetryInsights}</p>
+                  <p>{activeExecutiveCopy?.telemetryInsights || reportData.executiveCopy.telemetryInsights}</p>
                 </div>
 
                 {/* 4. Plano de Ação */}
@@ -515,7 +560,7 @@ export function ClientReportView({
                     <ArrowRight className="w-4 h-4 text-[#0dcaf0]" />
                     4. Recomendações e Próximos Passos
                   </h3>
-                  <p>{reportData.executiveCopy.actionPlan}</p>
+                  <p>{activeExecutiveCopy?.actionPlan || reportData.executiveCopy.actionPlan}</p>
                 </div>
               </div>
             </div>
@@ -624,10 +669,11 @@ export function ClientReportView({
                       <tr className="border-b border-gray-200 text-gray-500 uppercase tracking-wider font-semibold">
                         <th className="py-2.5 px-3">Código</th>
                         <th className="py-2.5 px-3">Título / Tela</th>
+                        <th className="py-2.5 px-3">Tipo</th>
                         <th className="py-2.5 px-3">Origem</th>
                         <th className="py-2.5 px-3">Ocorrências</th>
                         <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3">SLA</th>
+                        {includeSla && <th className="py-2.5 px-3">SLA</th>}
                         <th className="py-2.5 px-3 text-right print:hidden">Ação</th>
                       </tr>
                     </thead>
@@ -647,6 +693,9 @@ export function ClientReportView({
                             </div>
                           </td>
                           <td className="py-2.5 px-3">
+                            <TicketTypeBadge type={t.type} size="sm" />
+                          </td>
+                          <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-700">
                               {t.origin}
                             </span>
@@ -657,19 +706,21 @@ export function ClientReportView({
                           <td className="py-2.5 px-3">
                             <StatusBadge status={t.status} />
                           </td>
-                          <td className="py-2.5 px-3">
-                            {t.slaMet ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-[#198754] font-semibold">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>No Prazo</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-[#dc3545] font-semibold">
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                <span>Excedido</span>
-                              </span>
-                            )}
-                          </td>
+                          {includeSla && (
+                            <td className="py-2.5 px-3">
+                              {t.slaMet ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-[#198754] font-semibold">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>No Prazo</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-[#dc3545] font-semibold">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span>Excedido</span>
+                                </span>
+                              )}
+                            </td>
+                          )}
                           <td className="py-2.5 px-3 text-right print:hidden">
                             <Link
                               href={`/suporte/chamados/${t.id}`}

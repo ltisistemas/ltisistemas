@@ -4,7 +4,7 @@ import { ClientHub360View } from "@/components/suporte/ClientHub360View";
 import * as commercialActions from "@/lib/actions/commercial-actions";
 import * as ticketActions from "@/lib/actions/ticket-actions";
 import * as authActions from "@/lib/actions/auth-actions";
-import { Role, ContractStatus, ReceivableStatus, ProposalStatus, TicketStatus, IncidentOrigin } from "@prisma/client";
+import { Role, ContractStatus, ReceivableStatus, ProposalStatus, TicketStatus, TicketType, IncidentOrigin } from "@prisma/client";
 import { SessionPayload } from "@/lib/auth/session";
 
 describe("components/suporte/ClientHub360View", () => {
@@ -104,6 +104,7 @@ describe("components/suporte/ClientHub360View", () => {
       title: "Erro 500 ao emitir NF-e",
       description: "Falha na conexão com SEFAZ.",
       screenName: "Faturamento",
+      type: TicketType.BUG,
       status: TicketStatus.ABERTO,
       origin: IncidentOrigin.BACK,
       occurrenceCount: 3,
