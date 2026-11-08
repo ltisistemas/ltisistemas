@@ -1,11 +1,18 @@
+const TYPE_PREFIX: Record<string, string> = {
+  EXTERNAL_ISSUE: "EXT",
+  TECHNICAL_CONSULTATION: "CONS",
+  COMMERCIAL_PROPOSAL: "PROP",
+};
+
 /**
- * Utility to format and generate incident hash codes in the standard:
- * LTI-BUG-XXXXXX-YYYY-MM-DD-HH-MM
+ * Utility to format and generate ticket codes in the standard:
+ * LTI-TYPE-XXXXXX-YYYY-MM-DD-HH-MM
  */
 export function formatTicketCode(ticket: {
   id?: string;
   ticketNumber?: number;
   createdAt?: Date | string;
+  type?: string;
 }): string {
   const date = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
 
@@ -27,5 +34,7 @@ export function formatTicketCode(ticket: {
     hash = String(ticket.ticketNumber).padStart(6, "0");
   }
 
-  return `LTI-BUG-${hash}-${year}-${month}-${day}-${hours}-${minutes}`;
+  const prefix = ticket.type ? TYPE_PREFIX[ticket.type] || "BUG" : "BUG";
+
+  return `LTI-${prefix}-${hash}-${year}-${month}-${day}-${hours}-${minutes}`;
 }

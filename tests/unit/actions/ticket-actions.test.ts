@@ -9,7 +9,7 @@ import {
   deleteTicketAction,
 } from "@/lib/actions/ticket-actions";
 import { prisma } from "@/lib/db/prisma";
-import { Role, TicketStatus } from "@prisma/client";
+import { IncidentOrigin, Role, TicketStatus, TicketType } from "@prisma/client";
 import * as sessionModule from "@/lib/auth/session";
 
 describe("lib/actions/ticket-actions", () => {
@@ -174,6 +174,52 @@ describe("lib/actions/ticket-actions", () => {
       expect(res.data?.ticketNumber).toBe(42);
       expect(res.data?.code).toMatch(/^LTI-BUG-[A-Z0-9]{6}-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/);
       expect(res.data?.slaDueAt).toBeDefined();
+    });
+
+    it("should preserve new ticket classifications when creating a ticket", async () => {
+      vi.spyOn(sessionModule, "requireSession").mockResolvedValue({
+        userId: "cli_1",
+        name: "Cliente",
+        email: "cli@empresa.com",
+        company: "Empresa",
+        role: Role.CLIENTE,
+      });
+
+      const createSpy = vi.spyOn(prisma.ticket, "create").mockResolvedValue({
+        id: "tkt_external_1",
+        ticketNumber: 44,
+        title: "Hospedagem indisponível",
+        screenName: "K2Host",
+        description: "O acesso está indisponível por instabilidade do provedor.",
+        type: TicketType.EXTERNAL_ISSUE,
+        status: TicketStatus.ABERTO,
+        origin: IncidentOrigin.OUTROS,
+        fingerprint: null,
+        occurrenceCount: 1,
+        lastOccurrenceAt: new Date(),
+        sourceUrl: null,
+        targetUrl: null,
+        slaDueAt: new Date(),
+        deletedAt: null,
+        userId: "cli_1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const res = await createTicketAction({
+        title: "Hospedagem indisponível",
+        screenName: "K2Host",
+        description: "O acesso está indisponível por instabilidade do provedor.",
+        type: TicketType.EXTERNAL_ISSUE,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.data?.type).toBe(TicketType.EXTERNAL_ISSUE);
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ type: TicketType.EXTERNAL_ISSUE }),
+        })
+      );
     });
 
     it("should allow SUPORTE to create ticket for specific client using targetUserId", async () => {

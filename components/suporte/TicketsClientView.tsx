@@ -27,6 +27,7 @@ import { TicketSummary, TicketStats } from "@/lib/actions/ticket-actions";
 import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
 import { TicketTypeBadge } from "./TicketTypeBadge";
+import { isSlaApplicableTicketType } from "@/lib/utils/ticket-type";
 import { SupportHeader } from "./SupportHeader";
 import { CreateTicketModal, ClientOption } from "./CreateTicketModal";
 import { CreateUserModal } from "./CreateUserModal";
@@ -74,7 +75,13 @@ export function TicketsClientView({
       const isBugSearch = q === "bug" || q === "falha" || q === "erro";
       const matchesType =
         (isFeatureSearch && ticket.type === "FEATURE") ||
-        (isBugSearch && (ticket.type === "BUG" || !ticket.type));
+        (isBugSearch && (ticket.type === "BUG" || !ticket.type)) ||
+        (ticket.type === "EXTERNAL_ISSUE" &&
+          ["indisponibilidade externa", "hospedagem", "domínio", "dns"].includes(q)) ||
+        (ticket.type === "TECHNICAL_CONSULTATION" &&
+          ["consulta técnica", "consulta", "orientação técnica"].includes(q)) ||
+        (ticket.type === "COMMERCIAL_PROPOSAL" &&
+          ["proposta comercial", "proposta enviada", "proposta"].includes(q));
 
       const matchesSearch =
         matchesType ||
@@ -372,10 +379,12 @@ export function TicketsClientView({
                         </h2>
                         <TicketTypeBadge type={ticket.type} size="sm" />
                         <StatusBadge status={ticket.status} size="sm" />
-                        <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="sm" />
+                        {isSlaApplicableTicketType(ticket.type) && (
+                          <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="sm" />
+                        )}
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
                           <Layout className="w-3 h-3 text-gray-500" />
-                          Tela: {ticket.screenName}
+                          Referência: {ticket.screenName}
                         </span>
                         {ticket.attachmentsCount > 0 && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">

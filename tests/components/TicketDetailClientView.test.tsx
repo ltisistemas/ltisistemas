@@ -80,7 +80,7 @@ describe("components/suporte/TicketDetailClientView", () => {
     expect(screen.getByText("LTI-BUG-000055-2026-09-21-14-30")).toBeInTheDocument();
     expect(screen.getAllByText("Backend").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("2 ocorrências")).toBeInTheDocument();
-    expect(screen.getByText("Tela: Módulo de Relatórios")).toBeInTheDocument();
+    expect(screen.getByText("Referência: Módulo de Relatórios")).toBeInTheDocument();
     expect(screen.getByText("Erro crítico no banco de dados")).toBeInTheDocument();
     expect(screen.getByText("João Silva")).toBeInTheDocument();
     expect(screen.getByText("Empresa Parceira (CTR-2026)")).toBeInTheDocument();
@@ -179,10 +179,18 @@ describe("components/suporte/TicketDetailClientView", () => {
     expect(screen.getByTitle("Fechar (Esc)")).toBeInTheDocument();
   });
 
-  it("should allow toggling ticket type", async () => {
-    vi.spyOn(ticketActions, "updateTicketTypeAction").mockResolvedValue({
+  it("should allow changing a ticket to an external issue", async () => {
+    const updateSpy = vi.spyOn(ticketActions, "updateTicketDetailsAction").mockResolvedValue({
       success: true,
-      data: { id: "tkt_100", type: TicketType.FEATURE },
+      data: {
+        id: "tkt_100",
+        type: TicketType.EXTERNAL_ISSUE,
+        createdAt: sampleTicket.createdAt,
+        slaDueAt: sampleTicket.slaDueAt,
+        title: sampleTicket.title,
+        screenName: sampleTicket.screenName,
+        description: sampleTicket.description,
+      },
     });
 
     render(
@@ -192,11 +200,16 @@ describe("components/suporte/TicketDetailClientView", () => {
       />
     );
 
-    const toggleBtn = screen.getByTitle(/Alternar para Nova Funcionalidade/i);
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByRole("button", { name: /Gerenciar Abertura & SLA/i }));
+    fireEvent.change(screen.getByLabelText(/Tipo da Solicitação/i), {
+      target: { value: TicketType.EXTERNAL_ISSUE },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Salvar Alterações/i }));
 
     await waitFor(() => {
-      expect(ticketActions.updateTicketTypeAction).toHaveBeenCalledWith("tkt_100", TicketType.FEATURE);
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ ticketId: "tkt_100", type: TicketType.EXTERNAL_ISSUE })
+      );
     });
   });
 

@@ -18,8 +18,6 @@ import {
   Edit3,
   X,
   Loader2,
-  Bug,
-  Sparkles,
   RefreshCw,
   Save,
   Check,
@@ -28,10 +26,10 @@ import { SessionPayload } from "@/lib/auth/session";
 import {
   TicketDetail,
   updateTicketStatusAction,
-  updateTicketTypeAction,
   updateTicketDetailsAction,
   deleteTicketAction,
 } from "@/lib/actions/ticket-actions";
+import { isSlaApplicableTicketType, TICKET_TYPE_OPTIONS } from "@/lib/utils/ticket-type";
 import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
 import { TicketTypeBadge } from "./TicketTypeBadge";
@@ -64,7 +62,6 @@ export function TicketDetailClientView({
   const router = useRouter();
   const [ticket, setTicket] = useState<TicketDetail>(initialTicket);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isUpdatingType, setIsUpdatingType] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
@@ -116,36 +113,6 @@ export function TicketDetailClientView({
     }
   };
 
-  const handleQuickTypeToggle = async () => {
-    const nextType = ticket.type === TicketType.BUG ? TicketType.FEATURE : TicketType.BUG;
-    setIsUpdatingType(true);
-    setStatusError(null);
-
-    try {
-      const res = await updateTicketTypeAction(ticket.id, nextType);
-      if (!res.success || !res.data) {
-        setStatusError(res.error || "Erro ao alterar tipo do chamado.");
-        setIsUpdatingType(false);
-        return;
-      }
-
-      setTicket((prev) => ({
-        ...prev,
-        type: res.data!.type,
-        updatedAt: new Date(),
-      }));
-      setEditType(res.data!.type);
-      setSuccessNotice(`Tipo alterado para ${res.data!.type === TicketType.FEATURE ? "Nova Funcionalidade" : "Bug"}!`);
-      setTimeout(() => setSuccessNotice(null), 3000);
-      setIsUpdatingType(false);
-      router.refresh();
-    } catch (err) {
-      console.error("Type update error:", err);
-      setStatusError("Erro ao alterar tipo do chamado.");
-      setIsUpdatingType(false);
-    }
-  };
-
   const handleRecalculateSla = () => {
     if (!editCreatedAt) return;
     const opening = new Date(editCreatedAt);
@@ -183,7 +150,9 @@ export function TicketDetailClientView({
         title: editTitle,
         screenName: editScreenName,
         createdAt: isSupport && editCreatedAt ? new Date(editCreatedAt) : undefined,
-        slaDueAt: isSupport && editSlaDueAt ? new Date(editSlaDueAt) : undefined,
+        slaDueAt: isSupport && isSlaApplicableTicketType(editType) && editSlaDueAt
+          ? new Date(editSlaDueAt)
+          : undefined,
       });
 
       if (!res.success || !res.data) {
@@ -273,7 +242,13 @@ export function TicketDetailClientView({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-xs font-semibold shadow-xs transition-all"
             >
               <Edit3 className="w-3.5 h-3.5 text-[#0d6efd]" />
-              <span>{isSupport ? "Gerenciar Abertura & SLA" : "Editar Tipo / Detalhes"}</span>
+              <span>
+                {isSupport
+                  ? isSlaApplicableTicketType(ticket.type)
+                    ? "Gerenciar Abertura & SLA"
+                    : "Gerenciar Registro"
+                  : "Editar Tipo / Detalhes"}
+              </span>
             </button>
 
             <button
@@ -314,26 +289,12 @@ export function TicketDetailClientView({
                   {ticket.code}
                 </span>
 
-                {/* Ticket Type Badge with Quick Toggle */}
-                <div className="inline-flex items-center gap-1.5">
-                  <TicketTypeBadge type={ticket.type} size="lg" />
-                  <button
-                    type="button"
-                    onClick={handleQuickTypeToggle}
-                    disabled={isUpdatingType}
-                    className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    title={`Alternar para ${ticket.type === TicketType.BUG ? "Nova Funcionalidade" : "Bug"}`}
-                  >
-                    {isUpdatingType ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-500" />
-                    ) : (
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
+                <TicketTypeBadge type={ticket.type} size="lg" />
 
                 <StatusBadge status={ticket.status} size="lg" />
-                <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />
+                {isSlaApplicableTicketType(ticket.type) && (
+                  <SlaBadge slaDueAt={ticket.slaDueAt} ticketStatus={ticket.status} size="lg" />
+                )}
                 {ticket.origin && <OriginBadge origin={ticket.origin} />}
                 {ticket.occurrenceCount > 1 && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1 rounded-lg">
@@ -343,7 +304,7 @@ export function TicketDetailClientView({
                 )}
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 px-3 py-1 rounded-lg">
                   <Layout className="w-3.5 h-3.5 text-gray-500" />
-                  Tela: {ticket.screenName}
+                  Referência: {ticket.screenName}
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
@@ -458,7 +419,7 @@ export function TicketDetailClientView({
         <div className="rounded-xl border border-gray-200 bg-white p-6 sm:p-8 shadow-xs mb-6">
           <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
             <FileText className="w-4 h-4 text-[#0d6efd]" />
-            <span>Descrição do Incidente</span>
+            <span>Descrição / Registro</span>
           </h2>
           <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
             {ticket.description}
@@ -527,7 +488,13 @@ export function TicketDetailClientView({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Gerenciar Abertura e SLA do Chamado"
+          aria-label={
+            isSupport
+              ? isSlaApplicableTicketType(editType)
+                ? "Gerenciar Abertura e SLA do Chamado"
+                : "Gerenciar Registro do Chamado"
+              : "Editar Chamado"
+          }
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
           onClick={() => setIsEditModalOpen(false)}
         >
@@ -538,10 +505,16 @@ export function TicketDetailClientView({
             <div className="flex items-center justify-between pb-4 border-b border-gray-200">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 tracking-tight">
-                  {isSupport ? "Gerenciar Abertura & SLA" : "Editar Chamado"}
+                  {isSupport
+                    ? isSlaApplicableTicketType(editType)
+                      ? "Gerenciar Abertura & SLA"
+                      : "Gerenciar Registro"
+                    : "Editar Chamado"}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Ajuste o tipo, data/hora de abertura e controle de prazos de SLA.
+                  {isSupport && isSlaApplicableTicketType(editType)
+                    ? "Ajuste o tipo, a data de abertura e o prazo de SLA."
+                    : "Atualize a classificação e os dados do chamado."}
                 </p>
               </div>
               <button
@@ -563,54 +536,22 @@ export function TicketDetailClientView({
             <form onSubmit={handleSaveDetails} className="mt-4 space-y-4">
               {/* Type selector */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <label htmlFor="edit-ticket-type" className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Tipo da Solicitação
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setEditType(TicketType.BUG)}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      editType === TicketType.BUG
-                        ? "border-rose-400 bg-rose-50/80 text-rose-900 ring-2 ring-rose-400/20 shadow-xs font-semibold"
-                        : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
-                    }`}
-                  >
-                    <div
-                      className={`p-1.5 rounded-lg shrink-0 ${
-                        editType === TicketType.BUG ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      <Bug className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">Bug / Falha</div>
-                      <div className="text-[10px] text-gray-500">Erro ou travamento</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setEditType(TicketType.FEATURE)}
-                    className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                      editType === TicketType.FEATURE
-                        ? "border-purple-400 bg-purple-50/80 text-purple-900 ring-2 ring-purple-400/20 shadow-xs font-semibold"
-                        : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
-                    }`}
-                  >
-                    <div
-                      className={`p-1.5 rounded-lg shrink-0 ${
-                        editType === TicketType.FEATURE ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">Nova Funcionalidade</div>
-                      <div className="text-[10px] text-gray-500">Melhoria ou recurso</div>
-                    </div>
-                  </button>
-                </div>
+                <select
+                  id="edit-ticket-type"
+                  value={editType}
+                  onChange={(e) => {
+                    const selectedOption = TICKET_TYPE_OPTIONS.find((option) => option.value === e.target.value);
+                    if (selectedOption) setEditType(selectedOption.value);
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+                >
+                  {TICKET_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Support SLA & Opening Date/Time Controls */}
@@ -619,19 +560,23 @@ export function TicketDetailClientView({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#0d6efd] flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" />
-                      Manejo de Datas & SLA (Equipe de Suporte)
+                      {isSlaApplicableTicketType(editType)
+                        ? "Manejo de Datas & SLA (Equipe de Suporte)"
+                        : "Data do Registro (Equipe de Suporte)"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleRecalculateSla}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0d6efd] hover:underline"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>Calcular SLA (+6h)</span>
-                    </button>
+                    {isSlaApplicableTicketType(editType) && (
+                      <button
+                        type="button"
+                        onClick={handleRecalculateSla}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0d6efd] hover:underline"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Calcular SLA (+6h)</span>
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={`grid grid-cols-1 ${isSlaApplicableTicketType(editType) ? "sm:grid-cols-2" : ""} gap-3`}>
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                         Data e Hora de Abertura
@@ -645,22 +590,26 @@ export function TicketDetailClientView({
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                        Prazo Limite do SLA
-                      </label>
-                      <input
-                        type="datetime-local"
-                        required
-                        value={editSlaDueAt}
-                        onChange={(e) => setEditSlaDueAt(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0d6efd]"
-                      />
-                    </div>
+                    {isSlaApplicableTicketType(editType) && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                          Prazo Limite do SLA
+                        </label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={editSlaDueAt}
+                          onChange={(e) => setEditSlaDueAt(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0d6efd]"
+                        />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[10px] text-gray-500">
-                    Ajuste a data de abertura para sincronizar retroativamente e clique em &quot;Calcular SLA&quot; para definir o prazo de 6h.
-                  </p>
+                  {isSlaApplicableTicketType(editType) && (
+                    <p className="text-[10px] text-gray-500">
+                      Ajuste a data de abertura para sincronizar retroativamente e clique em &quot;Calcular SLA&quot; para definir o prazo de 6h.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -681,7 +630,7 @@ export function TicketDetailClientView({
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Nome da Tela / Módulo
+                    Módulo / Referência
                   </label>
                   <input
                     type="text"

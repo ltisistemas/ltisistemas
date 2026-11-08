@@ -26,6 +26,9 @@ enum TicketStatus {
 enum TicketType {
   BUG
   FEATURE
+  EXTERNAL_ISSUE
+  TECHNICAL_CONSULTATION
+  COMMERCIAL_PROPOSAL
 }
 
 enum IncidentOrigin {

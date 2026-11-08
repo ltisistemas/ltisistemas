@@ -116,7 +116,7 @@ describe("components/suporte/TicketsClientView", () => {
 
     expect(screen.getByText("Painel Geral de Atendimento")).toBeInTheDocument();
     expect(screen.getByText("Erro no webhook")).toBeInTheDocument();
-    expect(screen.getByText("Tela: Tela de Integrações")).toBeInTheDocument();
+    expect(screen.getByText("Referência: Tela de Integrações")).toBeInTheDocument();
     expect(screen.getByText("Dúvida sobre relatório")).toBeInTheDocument();
     expect(screen.getByText("LTI-BUG-000101-2026-09-21-10-00")).toBeInTheDocument();
     expect(screen.getByText("LTI-BUG-000102-2026-09-21-11-00")).toBeInTheDocument();
@@ -271,7 +271,7 @@ describe("components/suporte/TicketsClientView", () => {
     fireEvent.change(screen.getByPlaceholderText(/Ex: Tela de associados/i), {
       target: { value: "Tela de Teste" },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu na tela/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu/i), {
       target: { value: "Descrição com mais de 10 caracteres detalhando o problema." },
     });
 
@@ -386,7 +386,7 @@ describe("components/suporte/TicketsClientView", () => {
     fireEvent.change(screen.getByPlaceholderText(/Ex: Tela de associados/i), {
       target: { value: "Tela de Checkout" },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu na tela/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Explique o que aconteceu/i), {
       target: { value: "Detalhes do incidente." },
     });
 

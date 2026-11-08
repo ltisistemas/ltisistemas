@@ -87,8 +87,12 @@ export async function createTicketAction(data: {
     const title = data.title?.trim();
     const description = data.description?.trim();
     const screenName = data.screenName?.trim();
-    const type = data.type === TicketType.FEATURE ? TicketType.FEATURE : TicketType.BUG;
+    const type = data.type ?? TicketType.BUG;
     const rawAttachments = data.attachments || [];
+
+    if (!Object.values(TicketType).includes(type)) {
+      return { success: false, error: "Tipo de chamado inválido." };
+    }
 
     if (!title || !description || !screenName) {
       return { success: false, error: "Título, nome da tela e descrição do problema são obrigatórios." };
@@ -407,8 +411,8 @@ export async function updateTicketTypeAction(
   try {
     const session = await requireSession();
 
-    if (![TicketType.BUG, TicketType.FEATURE].includes(newType)) {
-      return { success: false, error: "Tipo de chamado inválido. Escolha Bug ou Nova Funcionalidade." };
+    if (!Object.values(TicketType).includes(newType)) {
+      return { success: false, error: "Tipo de chamado inválido." };
     }
 
     const ticket = await prisma.ticket.findUnique({
@@ -504,7 +508,7 @@ export async function updateTicketDetailsAction(data: {
     const updateData: any = {};
 
     if (data.type !== undefined) {
-      if (![TicketType.BUG, TicketType.FEATURE].includes(data.type)) {
+      if (!Object.values(TicketType).includes(data.type)) {
         return { success: false, error: "Tipo de chamado inválido." };
       }
       updateData.type = data.type;

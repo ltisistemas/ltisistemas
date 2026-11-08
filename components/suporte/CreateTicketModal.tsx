@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
-import { X, Upload, Loader2, AlertCircle, Clock, UserCheck, Bug, Sparkles } from "lucide-react";
+import { X, Upload, Loader2, AlertCircle, Clock } from "lucide-react";
 import { createTicketAction, AttachmentInput } from "@/lib/actions/ticket-actions";
 import { compressImageToBase64 } from "@/lib/utils/image-compression";
+import { isSlaApplicableTicketType, TICKET_TYPE_OPTIONS } from "@/lib/utils/ticket-type";
 import { TicketType } from "@prisma/client";
 
 export interface ClientOption {
@@ -43,6 +44,8 @@ export function CreateTicketModal({
   if (!isOpen) return null;
 
   const isSupport = userRole === "SUPORTE";
+  const selectedType = TICKET_TYPE_OPTIONS.find((option) => option.value === type);
+  const showSla = isSlaApplicableTicketType(type);
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -151,7 +154,7 @@ export function CreateTicketModal({
               Abrir Novo Chamado de Suporte
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Descreva o incidente ou solicitação técnica para nossa equipe.
+              Registre um problema, consulta técnica ou contato comercial.
             </p>
           </div>
           <button
@@ -163,13 +166,14 @@ export function CreateTicketModal({
           </button>
         </div>
 
-        {/* SLA Info Banner */}
-        <div className="mt-4 p-3 rounded-xl bg-[#cff4fc] border border-[#b6effb] flex items-center gap-2.5 text-xs text-[#055160]">
-          <Clock className="w-4 h-4 text-[#0dcaf0] shrink-0" />
-          <span>
-            <strong>SLA de 6 horas para análise:</strong> Sua solicitação receberá atendimento e primeira avaliação técnica em até 6 horas úteis.
-          </span>
-        </div>
+        {showSla && (
+          <div className="mt-4 p-3 rounded-xl bg-[#cff4fc] border border-[#b6effb] flex items-center gap-2.5 text-xs text-[#055160]">
+            <Clock className="w-4 h-4 text-[#0dcaf0] shrink-0" />
+            <span>
+              <strong>SLA de 6 horas para análise:</strong> Sua solicitação receberá atendimento e primeira avaliação técnica em até 6 horas úteis.
+            </span>
+          </div>
+        )}
 
         {/* Error Alert */}
         {errorMessage && (
@@ -184,11 +188,12 @@ export function CreateTicketModal({
           {/* Client selector (visible for SUPORTE) */}
           {isSupport && (
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              <label htmlFor="client-solicitant" className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Cliente Solicitante <span className="text-gray-400 font-normal">(opcional - vincular ao chamado)</span>
               </label>
               <div className="relative">
                 <select
+                  id="client-solicitant"
                   value={targetUserId}
                   onChange={(e) => setTargetUserId(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
@@ -204,67 +209,46 @@ export function CreateTicketModal({
             </div>
           )}
 
-          {/* Type Selector (Bug vs Nova Funcionalidade) */}
+          {/* Type Selector */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+            <label htmlFor="ticket-type" className="block text-xs font-semibold text-gray-700 mb-1.5">
               Tipo de Solicitação <span className="text-[#dc3545]">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setType(TicketType.BUG)}
-                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                  type === TicketType.BUG
-                    ? "border-rose-400 bg-rose-50/80 text-rose-900 ring-2 ring-rose-400/20 shadow-xs font-semibold"
-                    : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-lg shrink-0 ${
-                    type === TicketType.BUG ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  <Bug className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold leading-tight">Bug / Erro</div>
-                  <div className="text-[10px] text-gray-500 truncate">Falha ou comportamento incorreto</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setType(TicketType.FEATURE)}
-                className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                  type === TicketType.FEATURE
-                    ? "border-purple-400 bg-purple-50/80 text-purple-900 ring-2 ring-purple-400/20 shadow-xs font-semibold"
-                    : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-lg shrink-0 ${
-                    type === TicketType.FEATURE ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold leading-tight">Nova Funcionalidade</div>
-                  <div className="text-[10px] text-gray-500 truncate">Novo recurso ou melhoria</div>
-                </div>
-              </button>
-            </div>
+            <select
+              id="ticket-type"
+              value={type}
+              onChange={(e) => {
+                const selectedOption = TICKET_TYPE_OPTIONS.find((option) => option.value === e.target.value);
+                if (selectedOption) setType(selectedOption.value);
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
+            >
+              {TICKET_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {selectedType && (
+              <p className="mt-1.5 text-xs text-gray-500">{selectedType.description}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Título do Incidente <span className="text-[#dc3545]">*</span>
+                Título / Assunto <span className="text-[#dc3545]">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="Ex: Erro ao gerar relatório"
+                placeholder={
+                  type === TicketType.EXTERNAL_ISSUE
+                    ? "Ex: Site indisponível por falha na hospedagem"
+                    : type === TicketType.TECHNICAL_CONSULTATION
+                      ? "Ex: Orientação sobre cadastro de associados"
+                      : type === TicketType.COMMERCIAL_PROPOSAL
+                        ? "Ex: Proposta de melhoria enviada ao cliente"
+                        : "Ex: Erro ao gerar relatório"
+                }
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
@@ -273,12 +257,20 @@ export function CreateTicketModal({
 
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Nome da Tela / Módulo <span className="text-[#dc3545]">*</span>
+                Módulo / Referência <span className="text-[#dc3545]">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="Ex: Tela de associados / Produtos"
+                placeholder={
+                  type === TicketType.EXTERNAL_ISSUE
+                    ? "Ex: Hospedagem K2Host, domínio ou DNS"
+                    : type === TicketType.TECHNICAL_CONSULTATION
+                      ? "Ex: Cadastro de associados"
+                      : type === TicketType.COMMERCIAL_PROPOSAL
+                        ? "Ex: Contrato 123 ou melhoria proposta"
+                        : "Ex: Tela de associados / Produtos"
+                }
                 value={screenName}
                 onChange={(e) => setScreenName(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors"
@@ -288,12 +280,20 @@ export function CreateTicketModal({
 
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-              Descritivo Detalhado <span className="text-[#dc3545]">*</span>
+              Descrição / Registro <span className="text-[#dc3545]">*</span>
             </label>
             <textarea
               required
               rows={4}
-              placeholder="Explique o que aconteceu na tela, passos para reproduzir o erro e o comportamento esperado..."
+              placeholder={
+                type === TicketType.EXTERNAL_ISSUE
+                  ? "Registre o impacto no cliente e a causa externa conhecida (hospedagem, domínio expirado, DNS etc.)."
+                  : type === TicketType.TECHNICAL_CONSULTATION
+                    ? "Registre a dúvida do cliente e a orientação técnica fornecida. Use esta categoria quando não houve intervenção no sistema."
+                    : type === TicketType.COMMERCIAL_PROPOSAL
+                      ? "Registre o escopo proposto e a data/canal de envio. Este registro não envia e-mails pela plataforma."
+                      : "Explique o que aconteceu, os passos para reproduzir e o comportamento esperado..."
+              }
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#0d6efd] focus:ring-1 focus:ring-[#0d6efd] transition-colors resize-none"

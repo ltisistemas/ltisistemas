@@ -61,6 +61,7 @@ import {
 import { ContractStatus, ReceivableStatus, ProposalStatus } from "@prisma/client";
 import { StatusBadge } from "./StatusBadge";
 import { SlaBadge } from "./SlaBadge";
+import { isSlaApplicableTicketType } from "@/lib/utils/ticket-type";
 import { CreateContractModal } from "./CreateContractModal";
 import { CreateReceivableModal } from "./CreateReceivableModal";
 import { CreateProposalModal } from "./CreateProposalModal";
@@ -1374,8 +1375,8 @@ export function ClientHub360View({
                         <thead className="bg-gray-50/80 text-gray-500 font-semibold border-b border-gray-200 uppercase text-[10px] tracking-wider">
                           <tr>
                             <th className="py-3 px-4">Código / ID</th>
-                            <th className="py-3 px-4">Título do Incidente</th>
-                            <th className="py-3 px-4">Módulo / Tela</th>
+                            <th className="py-3 px-4">Título / Assunto</th>
+                            <th className="py-3 px-4">Módulo / Referência</th>
                             <th className="py-3 px-4">Origem</th>
                             <th className="py-3 px-4">SLA Restante</th>
                             <th className="py-3 px-4">Status</th>
@@ -1402,7 +1403,9 @@ export function ClientHub360View({
                                 </span>
                               </td>
                               <td className="py-3.5 px-4">
-                                <SlaBadge slaDueAt={t.slaDueAt} ticketStatus={t.status} />
+                                {isSlaApplicableTicketType(t.type)
+                                  ? <SlaBadge slaDueAt={t.slaDueAt} ticketStatus={t.status} />
+                                  : "—"}
                               </td>
                               <td className="py-3.5 px-4">
                                 <StatusBadge status={t.status} />

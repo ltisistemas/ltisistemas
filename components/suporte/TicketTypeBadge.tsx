@@ -1,5 +1,5 @@
 import { TicketType } from "@prisma/client";
-import { Bug, Sparkles } from "lucide-react";
+import { Bug, Sparkles, Globe, MessageCircleQuestion, FileText } from "lucide-react";
 
 interface TicketTypeBadgeProps {
   type?: TicketType | string;
@@ -34,6 +34,42 @@ export function TicketTypeBadge({
       >
         {showIcon && <Sparkles className={`${iconSizes[size]} text-purple-600 shrink-0`} />}
         <span>Nova Funcionalidade</span>
+      </span>
+    );
+  }
+
+  if (normalized === "EXTERNAL_ISSUE") {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full bg-amber-50 text-amber-800 border border-amber-200 shadow-xs ${sizeClasses[size]}`}
+        title="Tipo: Indisponibilidade externa"
+      >
+        {showIcon && <Globe className={`${iconSizes[size]} text-amber-700 shrink-0`} />}
+        <span>Indisponibilidade externa</span>
+      </span>
+    );
+  }
+
+  if (normalized === "TECHNICAL_CONSULTATION") {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full bg-sky-50 text-sky-800 border border-sky-200 shadow-xs ${sizeClasses[size]}`}
+        title="Tipo: Consulta técnica"
+      >
+        {showIcon && <MessageCircleQuestion className={`${iconSizes[size]} text-sky-700 shrink-0`} />}
+        <span>Consulta técnica</span>
+      </span>
+    );
+  }
+
+  if (normalized === "COMMERCIAL_PROPOSAL") {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs ${sizeClasses[size]}`}
+        title="Tipo: Proposta comercial enviada"
+      >
+        {showIcon && <FileText className={`${iconSizes[size]} text-emerald-700 shrink-0`} />}
+        <span>Proposta comercial enviada</span>
       </span>
     );
   }

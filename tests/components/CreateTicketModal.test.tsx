@@ -159,7 +159,7 @@ describe("components/suporte/CreateTicketModal", () => {
     );
 
     expect(screen.getByText(/Cliente Solicitante/i)).toBeInTheDocument();
-    const clientSelect = screen.getByRole("combobox");
+    const clientSelect = screen.getByLabelText(/Cliente Solicitante/i);
     fireEvent.change(clientSelect, { target: { value: "cli_1" } });
 
     const titleInput = screen.getByPlaceholderText(/Erro ao gerar relatório/i);
@@ -184,6 +184,87 @@ describe("components/suporte/CreateTicketModal", () => {
       );
       expect(handleSuccess).toHaveBeenCalledWith("tkt_sup_1", 88, "LTI-BUG-000088-2026-09-21-12-00");
       expect(handleClose).toHaveBeenCalled();
+    });
+  });
+
+  it("should register a commercial proposal without presenting it as an email action", async () => {
+    const createSpy = vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
+      success: true,
+      data: {
+        id: "tkt_proposal_1",
+        ticketNumber: 89,
+        code: "LTI-COMMERCIAL_PROPOSAL-000089-2026-09-21-12-00",
+        slaDueAt: new Date(),
+        type: TicketType.COMMERCIAL_PROPOSAL,
+      },
+    });
+
+    render(<CreateTicketModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/Tipo de Solicitação/i), {
+      target: { value: TicketType.COMMERCIAL_PROPOSAL },
+    });
+
+    expect(screen.getByText(/não envia e-mails pela plataforma/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SLA de 6 horas para análise/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText(/scope|escopo proposto/i), {
+      target: { value: "Escopo de melhoria do contrato" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Contrato 123 ou melhoria proposta/i), {
+      target: { value: "Contrato 123" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/data\/canal de envio/i), {
+      target: { value: "Enviada por e-mail em 08/11/2026" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Proposta de melhoria enviada/i), {
+      target: { value: "Proposta de melhoria do contrato" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Criar Chamado/i }));
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: TicketType.COMMERCIAL_PROPOSAL })
+      );
+    });
+  });
+
+  it("should record a technical consultation without assigning an intervention SLA", async () => {
+    const createSpy = vi.spyOn(ticketActions, "createTicketAction").mockResolvedValue({
+      success: true,
+      data: {
+        id: "tkt_consultation_1",
+        ticketNumber: 90,
+        code: "LTI-CONS-000090-2026-09-21-12-00",
+        slaDueAt: new Date(),
+        type: TicketType.TECHNICAL_CONSULTATION,
+      },
+    });
+
+    render(<CreateTicketModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/Tipo de Solicitação/i), {
+      target: { value: TicketType.TECHNICAL_CONSULTATION },
+    });
+
+    expect(screen.getByText(/sem intervenção no sistema/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SLA de 6 horas para análise/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText(/Orientação sobre cadastro/i), {
+      target: { value: "Dúvida sobre cadastro" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ex: Cadastro de associados/i), {
+      target: { value: "Cadastro de associados" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/orientação técnica fornecida/i), {
+      target: { value: "Orientado sobre os passos do cadastro, sem intervenção." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Criar Chamado/i }));
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: TicketType.TECHNICAL_CONSULTATION })
+      );
     });
   });
 });
